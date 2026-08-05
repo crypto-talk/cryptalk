@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { api, ApiCoin, ApiPost, Asset, connectInjectedWallet, Member, refreshSession } from "../lib/api";
 
 type Coin = { symbol: string; name: string; price: string; change: string; color: string; members: string; holders: string; description: string; };
 type Post = { id: number; name: string; handle: string; initials: string; time: string; title: string; body: string; asset: string; verified: boolean; likes: number; comments: number; tag?: string; liked?: boolean; };
@@ -13,40 +14,65 @@ const coins: Coin[] = [
   { symbol: "DOGE", name: "Dogecoin", price: "₩292", change: "+1.19%", color: "#c9a633", members: "42K", holders: "58%", description: "도지코인 홀더들의 유쾌하고 솔직한 투자 이야기" },
 ];
 
-const starterPosts: Post[] = [
-  { id: 1, name: "체인위의고래", handle: "0x7A2F...91C4", initials: "CW", time: "8분 전", title: "이번 조정에서 ETH를 조금 더 담았습니다", body: "ETF 순유입과 스테이킹 물량을 같이 보면 단기 변동성보다 공급 감소 쪽이 더 중요해 보여요. 3,600달러 부근은 여전히 분할 매수 구간으로 보고 있습니다.", asset: "₩342,840,000", verified: true, likes: 248, comments: 37, tag: "매매일지" },
-  { id: 2, name: "레이어투러버", handle: "0x3B8D...4E21", initials: "L2", time: "24분 전", title: "다음 업그레이드가 L2 수수료에 미치는 영향 정리", body: "블롭 처리량 확대가 예정대로 반영되면 사용자가 체감하는 수수료는 한 단계 더 낮아질 수 있습니다. 다만 시퀀서 수익 구조 변화는 프로젝트별로 확인이 필요해요.", asset: "₩87,120,000", verified: true, likes: 182, comments: 29, tag: "리서치" },
-  { id: 3, name: "블록산책", handle: "0x91CC...08AF", initials: "BS", time: "41분 전", title: "스테이킹 처음 시작할 때 체크할 것들", body: "수익률 숫자만 보지 말고 출금 대기 시간, 운영 주체, 스마트 컨트랙트 리스크를 함께 보세요. 처음이라면 소액으로 직접 흐름을 경험해 보는 걸 추천합니다.", asset: "자산 비공개", verified: false, likes: 96, comments: 18, tag: "정보" },
-];
-
 const trending = [["1", "ETH 현물 ETF", "1,284 posts"], ["2", "Pectra 업그레이드", "896 posts"], ["3", "스테이킹", "642 posts"], ["4", "레이어 2", "418 posts"]];
+
+const coinMeta: Record<string, Pick<Coin, "price" | "change" | "members" | "holders" | "description">> = Object.fromEntries(coins.map((coin) => [coin.symbol, coin]));
+const toCoin = (coin: ApiCoin): Coin => ({ ...coinMeta[coin.symbol], symbol: coin.symbol, name: coin.name, color: coin.accentColor });
+const toPost = (post: ApiPost): Post => ({
+  id: post.id, name: post.author.nickname, handle: post.author.walletAddress, initials: post.author.nickname.slice(0, 2).toUpperCase(),
+  time: new Intl.RelativeTimeFormat("ko", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(post.createdAt).getTime()) / 60000)), "minute"),
+  title: post.title, body: post.content, asset: post.assetDisplay, verified: post.verifiedHolder,
+  likes: post.likes, comments: post.comments, tag: "의견", liked: post.liked,
+});
 
 export default function Home() {
   const [activeCoin, setActiveCoin] = useState(coins[1]);
-  const [posts, setPosts] = useState(starterPosts);
+  const [communityCoins, setCommunityCoins] = useState(coins);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState("인기");
-  const [connected, setConnected] = useState(false);
+  const [member, setMember] = useState<Member | null>(null);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [error, setError] = useState("");
   const [walletOpen, setWalletOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const filteredCoins = useMemo(() => coins.filter((coin) => `${coin.name} ${coin.symbol}`.toLowerCase().includes(search.toLowerCase())), [search]);
+  const connected = member !== null;
+  const filteredCoins = useMemo(() => communityCoins.filter((coin) => `${coin.name} ${coin.symbol}`.toLowerCase().includes(search.toLowerCase())), [search, communityCoins]);
+
+  useEffect(() => {
+    api.coins().then((items) => { const loaded = items.map(toCoin); setCommunityCoins(loaded); setActiveCoin(loaded.find((coin) => coin.symbol === "ETH") ?? loaded[0]); }).catch(() => setError("백엔드 서버에 연결할 수 없습니다."));
+    refreshSession().then((profile) => { setMember(profile); if (profile) api.assets().then(setAssets).catch(() => undefined); });
+  }, []);
+
+  useEffect(() => {
+    api.posts(activeCoin.symbol).then((items) => setPosts(items.map(toPost))).catch(() => setPosts([]));
+  }, [activeCoin.symbol, member]);
 
   const selectCoin = (coin: Coin) => {
     setActiveCoin(coin);
-    setPosts(starterPosts.map((post) => ({ ...post, id: post.id + coins.indexOf(coin) * 10 })));
   };
   const openComposer = () => connected ? setComposerOpen(true) : setWalletOpen(true);
-  const connectWallet = () => { setConnected(true); setWalletOpen(false); };
-  const createPost = (event: FormEvent<HTMLFormElement>) => {
+  const connectWallet = async () => {
+    setError("");
+    try { const profile = await connectInjectedWallet(); setMember(profile); setWalletOpen(false); setAssets(await api.assets()); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "지갑 연결에 실패했습니다."); }
+  };
+  const disconnectWallet = async () => { await api.logout(); setMember(null); setAssets([]); };
+  const createPost = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const title = String(form.get("title") || "").trim();
     const body = String(form.get("body") || "").trim();
     if (!title || !body) return;
-    setPosts((current) => [{ id: Date.now(), name: "크립토노트", handle: "0x18D7...A93E", initials: "CN", time: "방금 전", title, body, asset: "₩52,480,000", verified: true, likes: 0, comments: 0, tag: "의견" }, ...current]);
-    setComposerOpen(false);
+    try { const created = await api.createPost(activeCoin.symbol, title, body); setPosts((current) => [toPost(created), ...current]); setComposerOpen(false); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "글을 등록하지 못했습니다."); }
   };
-  const toggleLike = (id: number) => setPosts((current) => current.map((post) => post.id === id ? { ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) } : post));
+  const toggleLike = async (id: number) => {
+    if (!connected) return setWalletOpen(true);
+    const current = posts.find((post) => post.id === id); if (!current) return;
+    try { const updated = toPost(await api.like(id, Boolean(current.liked))); setPosts((items) => items.map((post) => post.id === id ? updated : post)); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "좋아요를 처리하지 못했습니다."); }
+  };
 
   return (
     <main className="app-shell">
@@ -55,7 +81,7 @@ export default function Home() {
         <div className="top-search"><span>⌕</span><input aria-label="전체 검색" placeholder="코인, 게시글, 지갑 주소 검색" /><kbd>⌘ K</kbd></div>
         <nav className="top-actions" aria-label="주요 메뉴">
           <button className="icon-button" aria-label="알림">♢<span className="notification-dot" /></button>
-          {connected ? <button className="wallet-connected" onClick={() => setConnected(false)}><span className="status-dot" />0x18D7...A93E <span className="chevron">⌄</span></button> : <button className="connect-button" onClick={() => setWalletOpen(true)}>지갑 연결</button>}
+          {connected ? <button className="wallet-connected" onClick={disconnectWallet}><span className="status-dot" />{member.walletAddress.slice(0, 6)}...{member.walletAddress.slice(-4)} <span className="chevron">⌄</span></button> : <button className="connect-button" onClick={() => setWalletOpen(true)}>지갑 연결</button>}
         </nav>
       </header>
 
@@ -82,6 +108,7 @@ export default function Home() {
           </div>
           <div className="feed-controls"><div className="tabs">{["인기", "최신", "보유 인증"].map((item) => <button key={item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div><button className="sort-button">24시간 <span>⌄</span></button></div>
           {!connected && <button className="wallet-nudge" onClick={() => setWalletOpen(true)}><span className="nudge-icon">◈</span><span><strong>지갑을 연결하고 홀더 인증을 시작하세요</strong><small>보유 자산을 공개하고 신뢰도 높은 대화에 참여할 수 있어요.</small></span><b>연결하기 →</b></button>}
+          {error && <p role="alert" style={{ color: "#dc2626", padding: "12px 20px", margin: 0 }}>{error}</p>}
           <div className="post-list">
             {posts.filter((post) => filter !== "보유 인증" || post.verified).map((post) => (
               <article className="post-card" key={post.id}>
@@ -90,19 +117,20 @@ export default function Home() {
                 <div className="post-actions"><button className={post.liked ? "liked" : ""} onClick={() => toggleLike(post.id)} aria-label="좋아요">{post.liked ? "♥" : "♡"} <span>{post.likes}</span></button><button aria-label="댓글">▢ <span>{post.comments}</span></button><button aria-label="공유">↗</button><button className="save" aria-label="저장">♧</button></div>
               </article>
             ))}
+            {posts.length === 0 && <div style={{ padding: 48, textAlign: "center", color: "#7b8190" }}>아직 작성된 글이 없습니다. 첫 글을 남겨보세요.</div>}
           </div>
         </section>
 
         <aside className="rightbar">
-          <section className="my-assets"><div className="section-title"><span>내 자산</span><button>•••</button></div>{connected ? <><p className="total-label">총 보유 자산</p><strong className="total-asset">₩52,480,000</strong><span className="daily-up">+₩1,284,200 (2.51%)</span><div className="mini-assets"><div><span className="mini-logo eth">E</span><p><strong>ETH</strong><small>9.68 ETH</small></p><b>₩52.4M</b></div></div></> : <div className="locked-assets"><span>◇</span><strong>자산을 불러올까요?</strong><p>지갑 연결 후 보유 자산을<br />안전하게 확인할 수 있어요.</p><button onClick={() => setWalletOpen(true)}>지갑 연결하기</button></div>}</section>
+          <section className="my-assets"><div className="section-title"><span>내 자산</span><button>•••</button></div>{connected ? <><p className="total-label">총 보유 자산</p><strong className="total-asset">₩{assets.reduce((sum, asset) => sum + Number(asset.valueKrw), 0).toLocaleString("ko-KR")}</strong><span className="daily-up">블록체인 조회 기준</span><div className="mini-assets">{assets.map((asset) => <div key={asset.symbol}><span className="mini-logo eth">{asset.symbol.slice(0, 1)}</span><p><strong>{asset.symbol}</strong><small>{Number(asset.quantity).toLocaleString()} {asset.symbol}</small></p><b>₩{Number(asset.valueKrw).toLocaleString("ko-KR")}</b></div>)}</div></> : <div className="locked-assets"><span>◇</span><strong>자산을 불러올까요?</strong><p>지갑 연결 후 보유 자산을<br />안전하게 확인할 수 있어요.</p><button onClick={() => setWalletOpen(true)}>지갑 연결하기</button></div>}</section>
           <section className="trending-card"><div className="section-title"><span>지금 뜨는 토픽</span><small>LIVE</small></div>{trending.map(([rank, topic, count]) => <button className="trend-row" key={rank}><b>{rank}</b><span><strong>{topic}</strong><small>{count}</small></span><i>↗</i></button>)}</section>
           <section className="trust-card"><span className="trust-mark">✓</span><div><strong>보유 인증이란?</strong><p>지갑 서명으로 자산 보유를 증명해요. 주소와 정확한 수량 공개 여부는 직접 선택할 수 있습니다.</p><button>자세히 알아보기 →</button></div></section>
           <footer><a href="#">이용약관</a><a href="#">개인정보처리방침</a><a href="#">가이드</a><span>© 2026 CRYPTALK</span></footer>
         </aside>
       </div>
 
-      {walletOpen && <div className="modal-backdrop" onMouseDown={() => setWalletOpen(false)}><section className="modal wallet-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="wallet-title"><button className="modal-close" onClick={() => setWalletOpen(false)}>×</button><span className="modal-symbol">◇</span><h2 id="wallet-title">지갑 연결</h2><p>지갑을 연결해 홀더 전용 대화에 참여하세요.<br />연결만으로는 거래가 발생하지 않습니다.</p><div className="wallet-options"><button onClick={connectWallet}><span className="wallet-icon fox">M</span><strong>MetaMask</strong><small>가장 인기 있는 지갑</small><b>→</b></button><button onClick={connectWallet}><span className="wallet-icon wc">W</span><strong>WalletConnect</strong><small>모바일 지갑 연결</small><b>→</b></button><button onClick={connectWallet}><span className="wallet-icon cb">C</span><strong>Coinbase Wallet</strong><small>Coinbase 계정 연결</small><b>→</b></button></div><small className="terms-copy">연결 시 이용약관 및 개인정보처리방침에 동의하게 됩니다.</small></section></div>}
-      {composerOpen && <div className="modal-backdrop" onMouseDown={() => setComposerOpen(false)}><form className="modal composer" onSubmit={createPost} onMouseDown={(e) => e.stopPropagation()}><div className="composer-head"><div><span className="hero-logo small" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><span><strong>{activeCoin.name}</strong><small>커뮤니티에 글쓰기</small></span></div><button type="button" onClick={() => setComposerOpen(false)}>×</button></div><input name="title" aria-label="글 제목" placeholder="제목을 입력하세요" maxLength={80} autoFocus required /><textarea name="body" aria-label="글 내용" placeholder="투자 아이디어와 정보를 자유롭게 공유해 보세요." maxLength={600} required /><div className="identity-preview"><span className="avatar">CN</span><span><strong>크립토노트 <i className="verified">✓</i></strong><small>◆ 보유 자산 ₩52,480,000 공개</small></span><button type="button">공개 설정</button></div><div className="composer-actions"><div><button type="button">#</button><button type="button">▧</button><button type="button">☺</button></div><button className="submit-post" type="submit">게시하기</button></div></form></div>}
+      {walletOpen && <div className="modal-backdrop" onMouseDown={() => setWalletOpen(false)}><section className="modal wallet-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="wallet-title"><button className="modal-close" onClick={() => setWalletOpen(false)}>×</button><span className="modal-symbol">◇</span><h2 id="wallet-title">지갑 연결</h2><p>지갑을 연결해 홀더 전용 대화에 참여하세요.<br />로그인 메시지 서명만 요청하며 거래는 발생하지 않습니다.</p>{error && <p role="alert" style={{ color: "#dc2626" }}>{error}</p>}<div className="wallet-options"><button onClick={connectWallet}><span className="wallet-icon fox">M</span><strong>EVM 지갑</strong><small>MetaMask · Coinbase Wallet</small><b>→</b></button></div><small className="terms-copy">현재 브라우저에 설치된 EVM 지갑을 사용합니다.</small></section></div>}
+      {composerOpen && member && <div className="modal-backdrop" onMouseDown={() => setComposerOpen(false)}><form className="modal composer" onSubmit={createPost} onMouseDown={(e) => e.stopPropagation()}><div className="composer-head"><div><span className="hero-logo small" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><span><strong>{activeCoin.name}</strong><small>커뮤니티에 글쓰기</small></span></div><button type="button" onClick={() => setComposerOpen(false)}>×</button></div><input name="title" aria-label="글 제목" placeholder="제목을 입력하세요" maxLength={80} autoFocus required /><textarea name="body" aria-label="글 내용" placeholder="투자 아이디어와 정보를 자유롭게 공유해 보세요." maxLength={600} required /><div className="identity-preview"><span className="avatar">{member.nickname.slice(0, 2).toUpperCase()}</span><span><strong>{member.nickname}</strong><small>{assets.find((asset) => asset.symbol === activeCoin.symbol)?.verified ? `◆ 보유 자산 ₩${Number(assets.find((asset) => asset.symbol === activeCoin.symbol)?.valueKrw).toLocaleString("ko-KR")} 공개` : "보유 인증 정보 없음"}</small></span><button type="button">{member.assetVisibility}</button></div><div className="composer-actions"><div><button type="button">#</button><button type="button">▧</button><button type="button">☺</button></div><button className="submit-post" type="submit">게시하기</button></div></form></div>}
     </main>
   );
 }

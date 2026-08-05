@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:cryptalk;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+cryptalk:
+  jwt:
+    secret: test-secret-that-is-definitely-at-least-32-bytes
+    access-token-minutes: 15
+    refresh-token-days: 14
+  cors:
+    allowed-origins: http://localhost:3000
+  asset:
+    ethereum-rpc-url: ""
+    eth-krw-price: 0
+  auth:
+    cookie-secure: false

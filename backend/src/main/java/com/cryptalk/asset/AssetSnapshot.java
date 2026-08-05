@@ -1,0 +1,40 @@
+package com.cryptalk.asset;
+
+import com.cryptalk.coin.Coin;
+import com.cryptalk.member.Member;
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+
+@Entity
+@Table(name = "asset_snapshots", uniqueConstraints = @UniqueConstraint(columnNames = {"member_id", "coin_id"}))
+public class AssetSnapshot {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "member_id")
+    private Member member;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "coin_id")
+    private Coin coin;
+    @Column(nullable = false, precision = 36, scale = 18)
+    private BigDecimal quantity;
+    @Column(name = "value_krw", nullable = false, precision = 24, scale = 2)
+    private BigDecimal valueKrw;
+    @Column(nullable = false)
+    private boolean verified;
+    @Column(name = "verification_status", nullable = false, length = 30)
+    private String verificationStatus;
+    @Column(name = "captured_at", nullable = false)
+    private Instant capturedAt;
+
+    protected AssetSnapshot() {}
+    public AssetSnapshot(Member member, Coin coin) { this.member = member; this.coin = coin; }
+    public void capture(BigDecimal quantity, BigDecimal valueKrw, boolean verified, String status) {
+        this.quantity = quantity; this.valueKrw = valueKrw; this.verified = verified; this.verificationStatus = status; this.capturedAt = Instant.now();
+    }
+    public Coin getCoin() { return coin; }
+    public BigDecimal getQuantity() { return quantity; }
+    public BigDecimal getValueKrw() { return valueKrw; }
+    public boolean isVerified() { return verified; }
+    public String getVerificationStatus() { return verificationStatus; }
+    public Instant getCapturedAt() { return capturedAt; }
+}

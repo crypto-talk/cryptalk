@@ -1,10 +1,16 @@
-# Backend
+# CrypTalk Backend
 
-CRYPTALK의 서버 애플리케이션을 위한 디렉터리입니다.
+Java 24와 Spring Boot 3.5.16으로 구현한 CrypTalk API입니다.
 
-현재는 프론트엔드 프로토타입만 구현되어 있어 서버 코드는 포함하지 않습니다. 이후 다음 기능을 이 영역에 추가할 수 있습니다.
+## 로컬 실행
 
-- 지갑 서명 검증과 사용자 세션
-- 온체인 보유 자산 조회 및 인증
-- 코인별 커뮤니티, 게시글, 댓글 API
-- 자산 공개 범위와 개인정보 보호 정책
+1. 저장소 루트에서 `docker compose up -d mysql`
+2. `cd backend && ./gradlew bootRun`
+3. Swagger UI: http://localhost:8080/swagger-ui.html
+
+기본 설정은 로컬 개발용입니다. 운영 환경에서는 `DB_*`, `JWT_SECRET`,
+`ETHEREUM_RPC_URL`, `ETH_KRW_PRICE`, `CORS_ALLOWED_ORIGINS`를 반드시 설정하세요.
+
+지갑 로그인은 EVM 지갑의 `personal_sign` 서명을 검증합니다. ETH 보유량 인증은
+설정된 Ethereum JSON-RPC를 통해 서버에서 조회하며, RPC 주소가 없으면 인증 상태를
+`UNAVAILABLE`로 반환합니다.
