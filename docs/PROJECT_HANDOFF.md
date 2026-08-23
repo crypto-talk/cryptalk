@@ -67,10 +67,13 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 
 ### Infrastructure
 
-- 로컬 MySQL과 백엔드를 위한 루트 `docker-compose.yml`
+- 프론트엔드, 백엔드, MySQL, Nginx gateway를 위한 루트 `docker-compose.yml`
 - 백엔드 멀티 스테이지 `Dockerfile`
+- 프론트엔드 Node.js 22 멀티 스테이지 `Dockerfile`
+- Nginx가 `/`는 프론트엔드, `/api`, Swagger는 백엔드로 reverse proxy한다.
+- `deploy.sh`가 private GitHub 저장소를 clone 또는 fast-forward pull한 뒤 이미지를 빌드하고 컨테이너를 교체한다.
 - 프론트에는 기존 Sites/Cloudflare 설정인 `.openai/hosting.json`이 존재한다.
-- 백엔드의 실제 배포 대상은 아직 정하지 않았다.
+- 실제 호스팅 사업자와 HTTPS 종료 지점은 아직 정하지 않았다.
 
 ## 4. 기술 결정 배경
 
@@ -387,7 +390,24 @@ API client는 `frontend/lib/api.ts`에 있다.
 
 ## 13. 로컬 실행
 
-### 전체 서비스
+### Docker Compose 전체 서비스
+
+```bash
+cp .env.example .env
+# placeholder secret 교체
+docker compose up -d --build
+```
+
+- Gateway: `http://localhost` (`HTTP_PORT`로 변경 가능)
+- API: `http://localhost/api/v1`
+- Swagger: `http://localhost/swagger-ui.html`
+- MySQL, backend, frontend 포트는 Docker 내부 네트워크에만 노출된다.
+
+배포 서버에서는 GitHub 인증 후 `deploy.sh`를 실행한다. 스크립트는 지정한
+배포 디렉터리에 저장소를 clone/pull하고 `docker compose build --pull` 및
+`docker compose up -d --remove-orphans`를 수행한다.
+
+### 컨테이너 없이 개발
 
 ```bash
 docker compose up -d mysql
