@@ -35,6 +35,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [walletOpen, setWalletOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const connected = member !== null;
   const filteredCoins = useMemo(() => communityCoins.filter((coin) => `${coin.name} ${coin.symbol}`.toLowerCase().includes(search.toLowerCase())), [search, communityCoins]);
@@ -102,12 +103,17 @@ export default function Home() {
         </aside>
 
         <section className="feed">
+          {mobileSearchOpen && <label className="mobile-search"><span>⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="코인 또는 심볼 검색" autoFocus /><button type="button" onClick={() => setMobileSearchOpen(false)} aria-label="검색 닫기">×</button></label>}
           <div className="community-hero">
             <div className="hero-main"><span className="hero-logo" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><div><div className="eyebrow">{activeCoin.symbol} COMMUNITY</div><h1>{activeCoin.name}</h1><p>{activeCoin.description}</p></div></div>
             <div className="community-stats"><div><strong>{activeCoin.members}</strong><span>멤버</span></div><i /><div><strong>{activeCoin.holders}</strong><span>보유 인증률</span></div><button className="write-button" onClick={openComposer}>＋ 글쓰기</button></div>
           </div>
           <div className="feed-controls"><div className="tabs">{["인기", "최신", "보유 인증"].map((item) => <button key={item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div><button className="sort-button">24시간 <span>⌄</span></button></div>
           {!connected && <button className="wallet-nudge" onClick={() => setWalletOpen(true)}><span className="nudge-icon">◈</span><span><strong>지갑을 연결하고 홀더 인증을 시작하세요</strong><small>보유 자산을 공개하고 신뢰도 높은 대화에 참여할 수 있어요.</small></span><b>연결하기 →</b></button>}
+          <section className="mobile-assets" id="mobile-assets" aria-label="내 자산 요약">
+            <div><span>내 자산</span>{connected && <small>블록체인 조회 기준</small>}</div>
+            {connected ? <><strong>₩{assets.reduce((sum, asset) => sum + Number(asset.valueKrw), 0).toLocaleString("ko-KR")}</strong><div className="mobile-asset-coins">{assets.map((asset) => <span key={asset.symbol}>{asset.symbol} {Number(asset.quantity).toLocaleString()}</span>)}</div></> : <button type="button" onClick={() => setWalletOpen(true)}>지갑을 연결해 자산 확인</button>}
+          </section>
           {error && <p role="alert" style={{ color: "#dc2626", padding: "12px 20px", margin: 0 }}>{error}</p>}
           <div className="post-list">
             {posts.filter((post) => filter !== "보유 인증" || post.verified).map((post) => (
@@ -128,6 +134,14 @@ export default function Home() {
           <footer><a href="#">이용약관</a><a href="#">개인정보처리방침</a><a href="#">가이드</a><span>© 2026 CRYPTALK</span></footer>
         </aside>
       </div>
+
+      <nav className="mobile-nav" aria-label="모바일 주요 메뉴">
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><span>⌂</span>홈</button>
+        <button type="button" className={mobileSearchOpen ? "active" : ""} onClick={() => setMobileSearchOpen((open) => !open)}><span>⌕</span>검색</button>
+        <button type="button" className="mobile-write" onClick={openComposer} aria-label="글쓰기"><span>＋</span></button>
+        <button type="button" onClick={() => document.getElementById("mobile-assets")?.scrollIntoView({ behavior: "smooth", block: "center" })}><span>◇</span>자산</button>
+        <button type="button" onClick={() => connected ? disconnectWallet() : setWalletOpen(true)}><span>◎</span>{connected ? "로그아웃" : "로그인"}</button>
+      </nav>
 
       {walletOpen && <div className="modal-backdrop" onMouseDown={() => setWalletOpen(false)}><section className="modal wallet-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="wallet-title"><button className="modal-close" onClick={() => setWalletOpen(false)}>×</button><span className="modal-symbol">◇</span><h2 id="wallet-title">지갑 연결</h2><p>지갑을 연결해 홀더 전용 대화에 참여하세요.<br />로그인 메시지 서명만 요청하며 거래는 발생하지 않습니다.</p>{error && <p role="alert" style={{ color: "#dc2626" }}>{error}</p>}<div className="wallet-options"><button onClick={connectWallet}><span className="wallet-icon fox">M</span><strong>EVM 지갑</strong><small>MetaMask · Coinbase Wallet</small><b>→</b></button></div><small className="terms-copy">현재 브라우저에 설치된 EVM 지갑을 사용합니다.</small></section></div>}
       {composerOpen && member && <div className="modal-backdrop" onMouseDown={() => setComposerOpen(false)}><form className="modal composer" onSubmit={createPost} onMouseDown={(e) => e.stopPropagation()}><div className="composer-head"><div><span className="hero-logo small" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><span><strong>{activeCoin.name}</strong><small>커뮤니티에 글쓰기</small></span></div><button type="button" onClick={() => setComposerOpen(false)}>×</button></div><input name="title" aria-label="글 제목" placeholder="제목을 입력하세요" maxLength={80} autoFocus required /><textarea name="body" aria-label="글 내용" placeholder="투자 아이디어와 정보를 자유롭게 공유해 보세요." maxLength={600} required /><div className="identity-preview"><span className="avatar">{member.nickname.slice(0, 2).toUpperCase()}</span><span><strong>{member.nickname}</strong><small>{assets.find((asset) => asset.symbol === activeCoin.symbol)?.verified ? `◆ 보유 자산 ₩${Number(assets.find((asset) => asset.symbol === activeCoin.symbol)?.valueKrw).toLocaleString("ko-KR")} 공개` : "보유 인증 정보 없음"}</small></span><button type="button">{member.assetVisibility}</button></div><div className="composer-actions"><div><button type="button">#</button><button type="button">▧</button><button type="button">☺</button></div><button className="submit-post" type="submit">게시하기</button></div></form></div>}
