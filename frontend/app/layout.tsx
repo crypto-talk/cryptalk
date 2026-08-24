@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const imageUrl = `${protocol}://${host}/og.png`;
   const title = "CRYPTALK — 증명된 투자자들의 코인 커뮤니티";
-  const description = "지갑으로 로그인하고, 실제 보유 자산을 인증해 코인별 투자자들과 이야기하세요.";
+  const description = "회원가입하고, 선택적으로 지갑 자산을 인증해 코인별 투자자들과 이야기하세요.";
 
   return {
     title,

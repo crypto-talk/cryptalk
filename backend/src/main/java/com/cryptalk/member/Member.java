@@ -8,6 +8,10 @@ import java.time.Instant;
 public class Member {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(unique = true, length = 254)
+    private String email;
+    @Column(name = "password_hash", length = 100)
+    private String passwordHash;
     @Column(nullable = false, unique = true, length = 40)
     private String nickname;
     @Column(name = "avatar_color", nullable = false, length = 20)
@@ -30,8 +34,16 @@ public class Member {
         this.updatedAt = createdAt;
     }
 
+    public Member(String email, String passwordHash, String nickname, String avatarColor) {
+        this(nickname, avatarColor);
+        this.email = email.toLowerCase();
+        this.passwordHash = passwordHash;
+    }
+
     public Long getId() { return id; }
     public String getNickname() { return nickname; }
+    public String getEmail() { return email; }
+    public String getPasswordHash() { return passwordHash; }
     public String getAvatarColor() { return avatarColor; }
     public AssetVisibility getAssetVisibility() { return assetVisibility; }
     public void update(String nickname, String avatarColor) { this.nickname = nickname; this.avatarColor = avatarColor; this.updatedAt = Instant.now(); }

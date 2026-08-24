@@ -26,14 +26,15 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 
 핵심 제품 정책은 다음과 같다.
 
-1. 사용자는 암호 대신 암호화폐 지갑의 메시지 서명으로 로그인한다.
-2. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
-3. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
-4. 해당 커뮤니티의 코인을 실제 보유한 것으로 검증된 작성자는 인증 마크를 받는다.
-5. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
-6. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
+1. 사용자는 이메일과 비밀번호로 가입·로그인하며, 기존 EVM 지갑 로그인도 지원한다.
+2. 가입 계정은 지갑 메시지 서명으로 지갑을 선택적으로 연결하고 자산을 인증한다.
+3. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
+4. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
+5. 해당 커뮤니티의 코인을 실제 보유한 것으로 검증된 작성자는 인증 마크를 받는다.
+6. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
+7. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
 
-현재 MVP는 EVM 지갑 로그인과 ETH 온체인 잔액 검증까지만 실제 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
+현재 MVP는 이메일 회원가입·로그인, EVM 지갑 로그인·계정 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
 
 ## 3. 확정 기술 스택
 
@@ -128,6 +129,7 @@ cryptalk/
 
 ### `auth`
 
+- 이메일 회원가입·로그인과 BCrypt 비밀번호 검증
 - 로그인 nonce 생성 및 5분 만료
 - Ethereum `personal_sign` 검증
 - 최초 로그인 시 회원과 EVM 지갑 자동 생성
@@ -145,6 +147,7 @@ cryptalk/
 ### `wallet`
 
 - 회원과 체인별 주소 연결
+- 로그인 회원에게 발급한 전용 nonce로 지갑 소유권을 확인해 계정에 연결
 - 현재 실제 로그인 체인은 `EVM`만 지원
 - EVM 주소는 소문자로 정규화해 저장
 
@@ -241,6 +244,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 | Method | Path | 설명 |
 |---|---|---|
+| POST | `/auth/signup` | 이메일, 비밀번호, 닉네임으로 가입 |
+| POST | `/auth/login` | 이메일과 비밀번호로 로그인 |
 | POST | `/auth/nonce` | 지갑 로그인용 nonce와 메시지 발급 |
 | POST | `/auth/wallet` | EVM 서명 검증 후 로그인 |
 | POST | `/auth/refresh` | refresh cookie 회전 및 access token 재발급 |
@@ -258,6 +263,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 |---|---|---|
 | GET | `/me` | 내 프로필 |
 | PATCH | `/me` | 닉네임 또는 아바타 색상 변경 |
+| POST | `/me/wallet/nonce` | 계정 연결용 지갑 서명 메시지 발급 |
+| POST | `/me/wallet` | 서명을 검증해 EVM 지갑 연결 |
 | GET | `/me/assets` | 온체인 자산 갱신 및 목록 반환 |
 | PATCH | `/me/asset-visibility` | `EXACT`, `RANGE`, `HIDDEN` 설정 |
 | POST | `/posts` | 게시글 생성 |
@@ -316,9 +323,9 @@ Liquibase 기준 파일:
 
 | 테이블 | 역할 | 주요 제약 |
 |---|---|---|
-| `members` | 회원 프로필과 자산 공개 설정 | nickname unique |
+| `members` | 이메일 계정, 비밀번호 해시, 프로필과 자산 공개 설정 | email/nickname unique |
 | `wallets` | 회원별 체인 지갑 | chain_type + address unique |
-| `auth_nonces` | 일회용 로그인 메시지 | UUID PK, expiry/used_at |
+| `auth_nonces` | 로그인·지갑 연결용 일회성 메시지 | UUID PK, purpose, member_id, expiry/used_at |
 | `refresh_tokens` | refresh token hash | token_hash unique |
 | `coins` | 코인/커뮤니티 기준 정보 | symbol unique |
 | `asset_snapshots` | 회원·코인별 최신 자산 | member_id + coin_id unique |
@@ -335,9 +342,10 @@ API client는 `frontend/lib/api.ts`에 있다.
 현재 연동됨:
 
 - 코인 목록 조회
+- 이메일 회원가입·로그인
 - 코인 변경 시 게시글 조회
 - 브라우저 injected EVM wallet 연결
-- nonce 발급, `personal_sign`, 로그인
+- nonce 발급, `personal_sign`, 지갑 로그인 또는 기존 계정 연결
 - refresh session
 - 로그아웃
 - ETH 자산 조회

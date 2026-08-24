@@ -14,6 +14,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,36 +26,78 @@ public class AuthService {
     private final WalletRepository wallets;
     private final WalletSignatureVerifier verifier;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
     private final long refreshTokenDays;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(AuthNonceRepository nonces, RefreshTokenRepository refreshTokens, MemberRepository members,
                        WalletRepository wallets, WalletSignatureVerifier verifier, JwtService jwtService,
+                       PasswordEncoder passwordEncoder,
                        @Value("${cryptalk.jwt.refresh-token-days}") long refreshTokenDays) {
         this.nonces = nonces; this.refreshTokens = refreshTokens; this.members = members; this.wallets = wallets;
-        this.verifier = verifier; this.jwtService = jwtService; this.refreshTokenDays = refreshTokenDays;
+        this.verifier = verifier; this.jwtService = jwtService; this.passwordEncoder = passwordEncoder; this.refreshTokenDays = refreshTokenDays;
+    }
+
+    @Transactional
+    public LoginResult signup(SignupRequest request) {
+        String email = request.email().trim().toLowerCase();
+        String nickname = request.nickname().trim();
+        if (members.findByEmailIgnoreCase(email).isPresent())
+            throw new ApiException(HttpStatus.CONFLICT, "이미 가입된 이메일입니다.");
+        if (members.findByNickname(nickname).isPresent())
+            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+        Member member = members.save(new Member(email, passwordEncoder.encode(request.password()), nickname, colorFor(email)));
+        return issueTokens(member, null);
+    }
+
+    @Transactional
+    public LoginResult emailLogin(EmailLoginRequest request) {
+        Member member = members.findByEmailIgnoreCase(request.email().trim())
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+        if (member.getPasswordHash() == null || !passwordEncoder.matches(request.password(), member.getPasswordHash()))
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+        String address = wallets.findFirstByMemberId(member.getId()).map(Wallet::getAddress).orElse(null);
+        return issueTokens(member, address);
     }
 
     @Transactional
     public NonceResponse createNonce(String rawAddress) {
+        return createNonce(rawAddress, "LOGIN", null);
+    }
+
+    @Transactional
+    public NonceResponse createLinkNonce(Long memberId, String rawAddress) {
+        members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        return createNonce(rawAddress, "LINK", memberId);
+    }
+
+    private NonceResponse createNonce(String rawAddress, String purpose, Long memberId) {
         String address = rawAddress.toLowerCase();
         String nonce = UUID.randomUUID().toString();
-        String message = "CrypTalk 로그인\n\n지갑 주소: " + address + "\n일회용 코드: " + nonce + "\n유효 시간: 5분";
-        AuthNonce saved = nonces.save(new AuthNonce(address, nonce, message));
+        String action = "LINK".equals(purpose) ? "지갑 연결" : "로그인";
+        String message = "CrypTalk " + action + "\n\n지갑 주소: " + address + "\n일회용 코드: " + nonce + "\n유효 시간: 5분";
+        AuthNonce saved = nonces.save(new AuthNonce(address, purpose, memberId, nonce, message));
         return new NonceResponse(saved.getId(), message, 300);
     }
 
     @Transactional
-    public LoginResult login(WalletLoginRequest request) {
+    public LoginResult walletLogin(WalletLoginRequest request) {
         String address = request.walletAddress().toLowerCase();
-        AuthNonce nonce = nonces.findById(request.nonceId())
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "로그인 요청을 찾을 수 없습니다."));
-        if (!nonce.isUsable() || !nonce.getWalletAddress().equals(address) || !verifier.verify(address, nonce.getMessage(), request.signature())) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "지갑 서명이 올바르지 않거나 만료되었습니다.");
-        }
-        nonce.use();
+        verifyNonce(request, address, "LOGIN", null);
         Wallet wallet = wallets.findByChainTypeAndAddress("EVM", address).orElseGet(() -> createMemberWallet(address));
         return issueTokens(wallet.getMember(), wallet.getAddress());
+    }
+
+    @Transactional
+    public MemberResponse connectWallet(Long memberId, WalletLoginRequest request) {
+        String address = request.walletAddress().toLowerCase();
+        verifyNonce(request, address, "LINK", memberId);
+        Wallet wallet = wallets.findByChainTypeAndAddress("EVM", address).orElse(null);
+        if (wallet != null && !wallet.getMember().getId().equals(memberId))
+            throw new ApiException(HttpStatus.CONFLICT, "다른 계정에 연결된 지갑입니다.");
+        Member member = members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        if (wallet == null) wallets.save(new Wallet(member, address));
+        return profile(member, address);
     }
 
     @Transactional
@@ -80,12 +123,25 @@ public class AuthService {
         return wallets.save(new Wallet(member, address));
     }
 
+    private void verifyNonce(WalletLoginRequest request, String address, String purpose, Long memberId) {
+        AuthNonce nonce = nonces.findById(request.nonceId())
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "지갑 인증 요청을 찾을 수 없습니다."));
+        boolean sameMember = memberId == null ? nonce.getMemberId() == null : memberId.equals(nonce.getMemberId());
+        if (!nonce.isUsable() || !purpose.equals(nonce.getPurpose()) || !sameMember ||
+            !nonce.getWalletAddress().equals(address) || !verifier.verify(address, nonce.getMessage(), request.signature()))
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "지갑 서명이 올바르지 않거나 만료되었습니다.");
+        nonce.use();
+    }
+
     private LoginResult issueTokens(Member member, String address) {
         byte[] bytes = new byte[32]; random.nextBytes(bytes);
         String rawRefresh = HexFormat.of().formatHex(bytes);
         refreshTokens.save(new RefreshToken(member, hash(rawRefresh), Instant.now().plusSeconds(refreshTokenDays * 86400)));
-        MemberResponse profile = new MemberResponse(member.getId(), member.getNickname(), member.getAvatarColor(), address, member.getAssetVisibility().name());
-        return new LoginResult(new AuthResponse(jwtService.issue(member), "Bearer", profile), rawRefresh);
+        return new LoginResult(new AuthResponse(jwtService.issue(member), "Bearer", profile(member, address)), rawRefresh);
+    }
+
+    private MemberResponse profile(Member member, String address) {
+        return new MemberResponse(member.getId(), member.getNickname(), member.getAvatarColor(), address, member.getAssetVisibility().name());
     }
 
     private String colorFor(String value) {

@@ -14,6 +14,10 @@ public class AuthNonce {
     private UUID id;
     @Column(name = "wallet_address", nullable = false, length = 80)
     private String walletAddress;
+    @Column(nullable = false, length = 20)
+    private String purpose;
+    @Column(name = "member_id")
+    private Long memberId;
     @Column(nullable = false, length = 100)
     private String nonce;
     @Column(nullable = false, length = 1000)
@@ -26,12 +30,14 @@ public class AuthNonce {
     private Instant createdAt;
 
     protected AuthNonce() {}
-    public AuthNonce(String walletAddress, String nonce, String message) {
-        this.id = UUID.randomUUID(); this.walletAddress = walletAddress; this.nonce = nonce; this.message = message;
+    public AuthNonce(String walletAddress, String purpose, Long memberId, String nonce, String message) {
+        this.id = UUID.randomUUID(); this.walletAddress = walletAddress; this.purpose = purpose; this.memberId = memberId; this.nonce = nonce; this.message = message;
         this.createdAt = Instant.now(); this.expiresAt = createdAt.plusSeconds(300);
     }
     public UUID getId() { return id; }
     public String getWalletAddress() { return walletAddress; }
+    public String getPurpose() { return purpose; }
+    public Long getMemberId() { return memberId; }
     public String getMessage() { return message; }
     public boolean isUsable() { return usedAt == null && expiresAt.isAfter(Instant.now()); }
     public void use() { usedAt = Instant.now(); }

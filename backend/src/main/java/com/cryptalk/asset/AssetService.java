@@ -32,7 +32,9 @@ public class AssetService {
     @Transactional
     public List<AssetResponse> refreshAndList(Long memberId) {
         Member member = members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
-        String address = wallets.findFirstByMemberId(memberId).orElseThrow().getAddress();
+        var wallet = wallets.findFirstByMemberId(memberId);
+        if (wallet.isEmpty()) return List.of();
+        String address = wallet.get().getAddress();
         Coin eth = coins.findBySymbolIgnoreCaseAndActiveTrue("ETH").orElseThrow();
         EthereumBalanceClient.BalanceResult balance = ethereum.balanceOf(address);
         AssetSnapshot snapshot = snapshots.findByMemberIdAndCoinId(memberId, eth.getId()).orElseGet(() -> new AssetSnapshot(member, eth));

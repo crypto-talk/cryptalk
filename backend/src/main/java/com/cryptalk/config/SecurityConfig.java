@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,13 +32,17 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
+                .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/nonce", "/api/v1/auth/wallet", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/coins", "/api/v1/communities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/comments").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(resource -> resource.jwt(Customizer.withDefaults()))
             .build();
     }
+
+    @Bean
+    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
 
     @Bean
     JwtEncoder jwtEncoder(@Value("${cryptalk.jwt.secret}") String secret) {
