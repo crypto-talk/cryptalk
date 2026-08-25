@@ -32,6 +32,28 @@ docker compose ps
 `.env`의 `PUBLIC_ORIGIN=https://your-domain.example` 및
 `AUTH_COOKIE_SECURE=true`를 설정하세요.
 
+## 이 서버에서 자동 배포
+
+`deploy-server.sh`는 `develop` 브랜치를 fast-forward로 갱신하고 이미지를 빌드한
+뒤 컨테이너를 교체하고 health 상태를 확인합니다. Docker 권한이 없으면 처음에
+`sudo` 비밀번호를 한 번만 요청하고 배포가 끝날 때까지 인증을 유지합니다. 비밀번호를
+파일이나 환경 변수에 저장하지 않습니다.
+
+```bash
+cd /home/umbrel/cryptalk
+./deploy-server.sh
+```
+
+다른 브랜치를 배포하려면 다음처럼 실행합니다.
+
+```bash
+CRYPTALK_BRANCH=release/0.0.1 ./deploy-server.sh
+```
+
+완전한 무인 배포가 필요하면 비밀번호를 저장하는 대신 root가 소유한 systemd 서비스나
+CI runner를 별도로 구성해야 합니다. Docker 실행 권한 자체가 사실상 root 권한이므로
+일반 사용자가 수정할 수 있는 스크립트에 광범위한 `NOPASSWD` sudo를 주지 마세요.
+
 ## GitHub에서 내려받아 재배포
 
 배포 서버에서 GitHub 인증을 한 번 설정한 후 `deploy.sh`를 실행하면 private
