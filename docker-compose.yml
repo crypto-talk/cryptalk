@@ -34,8 +34,11 @@ services:
       ETHEREUM_RPC_URL: ${ETHEREUM_RPC_URL:-}
       ETH_KRW_PRICE: ${ETH_KRW_PRICE:-0}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      MEDIA_STORAGE_PATH: /app/uploads
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - cryptalk-media:/app/uploads
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/api/v1/coins"]
       interval: 10s
@@ -47,6 +50,7 @@ services:
 
 volumes:
   cryptalk-mysql:
+  cryptalk-media:
 
 networks:
   internal:

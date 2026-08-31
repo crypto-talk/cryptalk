@@ -34,6 +34,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/posts/*", "/api/v1/media/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/members/*/social", "/api/v1/members/*/followers", "/api/v1/members/*/following").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/coins", "/api/v1/communities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/comments").permitAll()
                 .anyRequest().authenticated())

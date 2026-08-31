@@ -8,6 +8,8 @@ spring:
     hibernate:
       ddl-auto: validate
 cryptalk:
+  media:
+    storage-path: build/test-media
   jwt:
     secret: test-secret-that-is-definitely-at-least-32-bytes
     access-token-minutes: 15

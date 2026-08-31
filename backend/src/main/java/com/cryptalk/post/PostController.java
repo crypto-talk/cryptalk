@@ -17,9 +17,22 @@ public class PostController {
     List<PostResponse> list(@PathVariable String symbol, @RequestParam(defaultValue="30") int size, @AuthenticationPrincipal Jwt jwt) {
         return posts.list(symbol, jwt == null ? null : id(jwt), size);
     }
+    @GetMapping("/feed")
+    List<PostResponse> feed(@RequestParam(defaultValue="30") int size, @AuthenticationPrincipal Jwt jwt) {
+        return posts.feed(jwt == null ? null : id(jwt), size);
+    }
+    @GetMapping("/posts/{postId}")
+    PostResponse get(@PathVariable Long postId, @AuthenticationPrincipal Jwt jwt) {
+        return posts.get(postId, jwt == null ? null : id(jwt));
+    }
     @PostMapping("/posts") PostResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreatePostRequest request) { return posts.create(id(jwt), request); }
     @DeleteMapping("/posts/{postId}") ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { posts.delete(id(jwt), postId); return ResponseEntity.noContent().build(); }
     @PostMapping("/posts/{postId}/likes") PostResponse like(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.like(id(jwt), postId); }
     @DeleteMapping("/posts/{postId}/likes") PostResponse unlike(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.unlike(id(jwt), postId); }
+    @PostMapping("/posts/{postId}/bookmarks") PostResponse bookmark(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.bookmark(id(jwt), postId); }
+    @DeleteMapping("/posts/{postId}/bookmarks") PostResponse unbookmark(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.unbookmark(id(jwt), postId); }
+    @GetMapping("/me/bookmarks") List<PostResponse> bookmarks(@AuthenticationPrincipal Jwt jwt) { return posts.bookmarks(id(jwt)); }
+    @PostMapping("/posts/{postId}/reposts") PostResponse repost(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.repost(id(jwt), postId); }
+    @DeleteMapping("/posts/{postId}/reposts") PostResponse unrepost(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.unrepost(id(jwt), postId); }
     private Long id(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }
 }
