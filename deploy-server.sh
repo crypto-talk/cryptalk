@@ -58,8 +58,8 @@ if ! docker info >/dev/null 2>&1; then
   COMPOSE=(sudo docker compose --project-directory "$APP_DIRECTORY")
 fi
 
-"${COMPOSE[@]}" pull mysql gateway
-"${COMPOSE[@]}" build --pull backend frontend
+"${COMPOSE[@]}" pull mysql
+"${COMPOSE[@]}" build --pull backend
 "${COMPOSE[@]}" up -d --remove-orphans
 
 deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
@@ -75,5 +75,5 @@ done
 
 echo "Services did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s." >&2
 "${COMPOSE[@]}" ps >&2
-"${COMPOSE[@]}" logs --no-color --tail=100 backend frontend gateway >&2
+"${COMPOSE[@]}" logs --no-color --tail=100 backend mysql >&2
 exit 5

@@ -13,8 +13,8 @@ cryptalk/
 
 ## Docker Compose 실행
 
-Docker Engine과 Docker Compose만 있으면 프론트엔드, 백엔드, MySQL, Nginx
-게이트웨이를 함께 빌드하고 실행할 수 있습니다.
+이 서버의 Docker Compose는 백엔드와 MySQL만 실행합니다. 프론트엔드는 별도 환경에
+배포하며, 이 저장소의 `frontend/` 소스는 개발 및 별도 배포를 위해 유지합니다.
 
 ```bash
 cp .env.example .env
@@ -23,19 +23,18 @@ docker compose up -d --build
 docker compose ps
 ```
 
-- 서비스: `http://localhost` 또는 `.env`의 `HTTP_PORT`
-- API: `http://localhost/api/v1`
-- Swagger: `http://localhost/swagger-ui.html`
-- MySQL과 애플리케이션 컨테이너는 외부에 직접 노출되지 않습니다.
+- API: `http://localhost:8080/api/v1` 또는 `.env`의 `BACKEND_PORT`
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- MySQL은 외부에 노출되지 않습니다.
 
-운영 HTTPS는 이 Compose 앞단의 reverse proxy 또는 load balancer에서 종료하고,
-`.env`의 `PUBLIC_ORIGIN=https://your-domain.example` 및
+운영 HTTPS는 백엔드 앞단의 reverse proxy 또는 load balancer에서 종료하고,
+`.env`의 `PUBLIC_ORIGIN`을 별도 배포한 프론트엔드 origin으로 설정하며
 `AUTH_COOKIE_SECURE=true`를 설정하세요.
 
 ## 이 서버에서 자동 배포
 
-`deploy-server.sh`는 `develop` 브랜치를 fast-forward로 갱신하고 이미지를 빌드한
-뒤 컨테이너를 교체하고 health 상태를 확인합니다. Docker 권한이 없으면 처음에
+`deploy-server.sh`는 `develop` 브랜치를 fast-forward로 갱신하고 백엔드 이미지를
+빌드한 뒤 백엔드와 MySQL만 실행하고 health 상태를 확인합니다. Docker 권한이 없으면 처음에
 `sudo` 비밀번호를 한 번만 요청하고 배포가 끝날 때까지 인증을 유지합니다. 비밀번호를
 파일이나 환경 변수에 저장하지 않습니다.
 
@@ -53,6 +52,38 @@ CRYPTALK_BRANCH=release/0.0.1 ./deploy-server.sh
 완전한 무인 배포가 필요하면 비밀번호를 저장하는 대신 root가 소유한 systemd 서비스나
 CI runner를 별도로 구성해야 합니다. Docker 실행 권한 자체가 사실상 root 권한이므로
 일반 사용자가 수정할 수 있는 스크립트에 광범위한 `NOPASSWD` sudo를 주지 마세요.
+
+### GitHub Actions로 백엔드만 자동 배포
+
+`develop` 브랜치의 백엔드 관련 파일이 변경되면
+`.github/workflows/deploy-backend.yml`이 이 Umbrel 서버의 self-hosted runner에서
+`deploy-backend.sh`를 실행합니다. Docker 이미지 빌드 중 테스트를 실행하고, 기존
+MySQL은 유지한 채 백엔드 컨테이너만 교체한 후 health 상태를
+확인합니다.
+
+1. GitHub 저장소의 **Settings → Actions → Runners → New self-hosted runner**에서
+   Linux x64를 선택합니다.
+2. GitHub가 표시하는 다운로드 및 `config.sh` 명령을 `umbrel` 사용자로 실행합니다.
+   Runner의 기본 작업 폴더는 저장소 밖(예: `/home/umbrel/actions-runner/_work`)을
+   사용하세요.
+3. 같은 안내 화면의 서비스 설치 명령으로 Runner를 등록하고 시작합니다.
+4. Runner 사용자가 Docker를 비밀번호 없이 실행할 수 있게 한 뒤 Runner 서비스를
+   재시작합니다. 이 서버에서 Runner를 `umbrel` 사용자로 등록했다면 다음과 같습니다.
+
+```bash
+sudo usermod -aG docker umbrel
+sudo systemctl restart 'actions.runner.*'
+```
+
+5. `/home/umbrel/cryptalk/.env`의 운영 secret과 origin 설정을 확인합니다. secret은
+   GitHub Actions 로그나 저장소에 복사하지 않습니다.
+6. Runner를 처음 연결하는 경우 이 서버 checkout에 `deploy-backend.sh`가 있도록
+   `develop`을 한 번 수동으로 pull합니다.
+7. 이후 백엔드 관련 변경을 `develop`에 push하면 자동 배포됩니다. GitHub Actions
+   화면의 **Run workflow**로 수동 재배포할 수도 있습니다.
+
+Runner는 저장소의 workflow 코드를 서버에서 실행할 권한을 갖습니다. 이 workflow는
+pull request가 아닌 보호된 `develop` 브랜치의 push에만 자동 실행되도록 유지하세요.
 
 ## GitHub에서 내려받아 재배포
 
@@ -82,13 +113,14 @@ CRYPTALK_DEPLOY_DIRECTORY="$HOME/cryptalk-deploy" \
 
 ```bash
 git pull --ff-only
-docker compose build --pull backend frontend
+docker compose build --pull backend
 docker compose up -d --remove-orphans
 ```
 
 ## 개발 환경 실행
 
-컨테이너 없이 개발할 때는 Docker와 Node.js 22.13 이상, Java 24가 필요합니다.
+백엔드는 Docker와 Java 24가 필요합니다. 프론트엔드 로컬 개발에는 Node.js 22.13
+이상이 추가로 필요합니다.
 
 ```bash
 docker compose up -d mysql

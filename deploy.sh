@@ -27,7 +27,7 @@ if grep -q 'replace-with-' "$DEPLOY_DIRECTORY/.env"; then
   exit 3
 fi
 
-docker compose --project-directory "$DEPLOY_DIRECTORY" pull mysql gateway
-docker compose --project-directory "$DEPLOY_DIRECTORY" build --pull backend frontend
+docker compose --project-directory "$DEPLOY_DIRECTORY" pull mysql
+docker compose --project-directory "$DEPLOY_DIRECTORY" build --pull backend
 docker compose --project-directory "$DEPLOY_DIRECTORY" up -d --remove-orphans
 docker compose --project-directory "$DEPLOY_DIRECTORY" ps

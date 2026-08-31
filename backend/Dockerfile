@@ -4,7 +4,7 @@ COPY gradlew settings.gradle build.gradle ./
 COPY gradle ./gradle
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 COPY src ./src
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew test bootJar --no-daemon
 
 FROM eclipse-temurin:24-jre
 WORKDIR /app
