@@ -149,3 +149,6 @@ npm run dev
 실제 자산 인증을 사용하려면 백엔드에 `ETHEREUM_RPC_URL`과 `ETH_KRW_PRICE`를
 설정해야 합니다. 설정하지 않은 경우 로그인과 커뮤니티 기능은 동작하지만 ETH 자산은
 `UNAVAILABLE` 상태로 표시됩니다.
+
+인증 API의 요청·응답과 cookie 명세는 [`docs/AUTH_API.md`](docs/AUTH_API.md)를
+참고하세요.
