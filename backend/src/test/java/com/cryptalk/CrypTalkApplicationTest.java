@@ -26,13 +26,16 @@ class CrypTalkApplicationTest {
     }
 
     @Test
-    void createsWalletLoginNonce() throws Exception {
+    void rejectsRemovedWalletLoginEndpoint() throws Exception {
         mvc.perform(post("/api/v1/auth/nonce")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"walletAddress\":\"0x1111111111111111111111111111111111111111\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nonceId").isNotEmpty())
-            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("CrypTalk 로그인")));
+            .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/v1/auth/wallet")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -26,7 +26,7 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 
 핵심 제품 정책은 다음과 같다.
 
-1. 사용자는 이메일과 비밀번호로 가입·로그인하며, 기존 EVM 지갑 로그인도 지원한다.
+1. 사용자는 이메일과 비밀번호로만 가입·로그인한다.
 2. 가입 계정은 지갑 메시지 서명으로 지갑을 선택적으로 연결하고 자산을 인증한다.
 3. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
 4. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
@@ -34,7 +34,7 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 6. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
 7. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
 
-현재 MVP는 이메일 회원가입·로그인, EVM 지갑 로그인·계정 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
+현재 MVP는 이메일 회원가입·로그인, 로그인 계정의 EVM 지갑 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
 
 ## 3. 확정 기술 스택
 
@@ -191,20 +191,14 @@ cryptalk/
 
 ```mermaid
 sequenceDiagram
-    participant U as 사용자 지갑
+    participant U as 사용자
     participant F as Frontend
     participant B as Backend
     participant DB as MySQL
 
-    F->>U: eth_requestAccounts
-    F->>B: POST /api/v1/auth/nonce
-    B->>DB: nonce와 만료 시각 저장
-    B-->>F: nonceId와 서명 메시지
-    F->>U: personal_sign(message, address)
-    U-->>F: signature
-    F->>B: POST /api/v1/auth/wallet
-    B->>B: 서명자 주소 복구 및 비교
-    B->>DB: 회원/지갑 생성 또는 조회
+    U->>F: 이메일과 비밀번호 입력
+    F->>B: POST /api/v1/auth/login
+    B->>DB: 회원 조회 및 BCrypt 검증
     B->>DB: refresh token hash 저장
     B-->>F: accessToken + 회원 정보 + HttpOnly refresh cookie
 ```
@@ -246,8 +240,6 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 |---|---|---|
 | POST | `/auth/signup` | 이메일, 비밀번호, 닉네임으로 가입 |
 | POST | `/auth/login` | 이메일과 비밀번호로 로그인 |
-| POST | `/auth/nonce` | 지갑 로그인용 nonce와 메시지 발급 |
-| POST | `/auth/wallet` | EVM 서명 검증 후 로그인 |
 | POST | `/auth/refresh` | refresh cookie 회전 및 access token 재발급 |
 | POST | `/auth/logout` | refresh token revoke 및 cookie 삭제 |
 | GET | `/coins` | 활성 코인 목록 |
@@ -345,7 +337,7 @@ API client는 `frontend/lib/api.ts`에 있다.
 - 이메일 회원가입·로그인
 - 코인 변경 시 게시글 조회
 - 브라우저 injected EVM wallet 연결
-- nonce 발급, `personal_sign`, 지갑 로그인 또는 기존 계정 연결
+- 로그인 계정의 nonce 발급, `personal_sign`, 지갑 연결
 - refresh session
 - 로그아웃
 - ETH 자산 조회
@@ -536,7 +528,7 @@ ghwns9652/cryptalk private 저장소의 작업을 이어가자.
 
 ## 19. 변경 시 유지해야 할 불변 조건
 
-- 지갑 로그인은 반드시 nonce 기반 서명 검증을 거친다.
+- 지갑 연결은 반드시 로그인된 계정에서 nonce 기반 서명 검증을 거친다.
 - 클라이언트가 보내는 자산 금액이나 인증 여부를 신뢰하지 않는다.
 - 인증 여부와 자산 값은 서버가 온체인/가격 데이터를 기준으로 계산한다.
 - 게시글에는 작성 시점 자산 snapshot을 보존한다.

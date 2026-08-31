@@ -61,11 +61,6 @@ public class AuthService {
     }
 
     @Transactional
-    public NonceResponse createNonce(String rawAddress) {
-        return createNonce(rawAddress, "LOGIN", null);
-    }
-
-    @Transactional
     public NonceResponse createLinkNonce(Long memberId, String rawAddress) {
         members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
         return createNonce(rawAddress, "LINK", memberId);
@@ -78,14 +73,6 @@ public class AuthService {
         String message = "CrypTalk " + action + "\n\n지갑 주소: " + address + "\n일회용 코드: " + nonce + "\n유효 시간: 5분";
         AuthNonce saved = nonces.save(new AuthNonce(address, purpose, memberId, nonce, message));
         return new NonceResponse(saved.getId(), message, 300);
-    }
-
-    @Transactional
-    public LoginResult walletLogin(WalletLoginRequest request) {
-        String address = request.walletAddress().toLowerCase();
-        verifyNonce(request, address, "LOGIN", null);
-        Wallet wallet = wallets.findByChainTypeAndAddress("EVM", address).orElseGet(() -> createMemberWallet(address));
-        return issueTokens(wallet.getMember(), wallet.getAddress());
     }
 
     @Transactional
@@ -115,12 +102,6 @@ public class AuthService {
     public void logout(String rawToken) {
         if (rawToken == null) return;
         refreshTokens.findByTokenHash(hash(rawToken)).ifPresent(RefreshToken::revoke);
-    }
-
-    private Wallet createMemberWallet(String address) {
-        String suffix = address.substring(address.length() - 6);
-        Member member = members.save(new Member("holder_" + suffix, colorFor(address)));
-        return wallets.save(new Wallet(member, address));
     }
 
     private void verifyNonce(WalletLoginRequest request, String address, String purpose, Long memberId) {
