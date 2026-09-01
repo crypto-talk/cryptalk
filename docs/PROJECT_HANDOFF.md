@@ -26,14 +26,15 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 
 핵심 제품 정책은 다음과 같다.
 
-1. 사용자는 암호 대신 암호화폐 지갑의 메시지 서명으로 로그인한다.
-2. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
-3. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
-4. 해당 커뮤니티의 코인을 실제 보유한 것으로 검증된 작성자는 인증 마크를 받는다.
-5. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
-6. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
+1. 사용자는 이메일과 비밀번호로만 가입·로그인한다.
+2. 가입 계정은 지갑 메시지 서명으로 지갑을 선택적으로 연결하고 자산을 인증한다.
+3. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
+4. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
+5. 해당 커뮤니티의 코인을 실제 보유한 것으로 검증된 작성자는 인증 마크를 받는다.
+6. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
+7. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
 
-현재 MVP는 EVM 지갑 로그인과 ETH 온체인 잔액 검증까지만 실제 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
+현재 MVP는 이메일 회원가입·로그인, 로그인 계정의 EVM 지갑 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
 
 ## 3. 확정 기술 스택
 
@@ -128,6 +129,7 @@ cryptalk/
 
 ### `auth`
 
+- 이메일 회원가입·로그인과 BCrypt 비밀번호 검증
 - 로그인 nonce 생성 및 5분 만료
 - Ethereum `personal_sign` 검증
 - 최초 로그인 시 회원과 EVM 지갑 자동 생성
@@ -145,6 +147,7 @@ cryptalk/
 ### `wallet`
 
 - 회원과 체인별 주소 연결
+- 로그인 회원에게 발급한 전용 nonce로 지갑 소유권을 확인해 계정에 연결
 - 현재 실제 로그인 체인은 `EVM`만 지원
 - EVM 주소는 소문자로 정규화해 저장
 
@@ -188,20 +191,14 @@ cryptalk/
 
 ```mermaid
 sequenceDiagram
-    participant U as 사용자 지갑
+    participant U as 사용자
     participant F as Frontend
     participant B as Backend
     participant DB as MySQL
 
-    F->>U: eth_requestAccounts
-    F->>B: POST /api/v1/auth/nonce
-    B->>DB: nonce와 만료 시각 저장
-    B-->>F: nonceId와 서명 메시지
-    F->>U: personal_sign(message, address)
-    U-->>F: signature
-    F->>B: POST /api/v1/auth/wallet
-    B->>B: 서명자 주소 복구 및 비교
-    B->>DB: 회원/지갑 생성 또는 조회
+    U->>F: 이메일과 비밀번호 입력
+    F->>B: POST /api/v1/auth/login
+    B->>DB: 회원 조회 및 BCrypt 검증
     B->>DB: refresh token hash 저장
     B-->>F: accessToken + 회원 정보 + HttpOnly refresh cookie
 ```
@@ -241,8 +238,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 | Method | Path | 설명 |
 |---|---|---|
-| POST | `/auth/nonce` | 지갑 로그인용 nonce와 메시지 발급 |
-| POST | `/auth/wallet` | EVM 서명 검증 후 로그인 |
+| POST | `/auth/signup` | 이메일, 비밀번호, 닉네임으로 가입 |
+| POST | `/auth/login` | 이메일과 비밀번호로 로그인 |
 | POST | `/auth/refresh` | refresh cookie 회전 및 access token 재발급 |
 | POST | `/auth/logout` | refresh token revoke 및 cookie 삭제 |
 | GET | `/coins` | 활성 코인 목록 |
@@ -258,6 +255,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 |---|---|---|
 | GET | `/me` | 내 프로필 |
 | PATCH | `/me` | 닉네임 또는 아바타 색상 변경 |
+| POST | `/me/wallet/nonce` | 계정 연결용 지갑 서명 메시지 발급 |
+| POST | `/me/wallet` | 서명을 검증해 EVM 지갑 연결 |
 | GET | `/me/assets` | 온체인 자산 갱신 및 목록 반환 |
 | PATCH | `/me/asset-visibility` | `EXACT`, `RANGE`, `HIDDEN` 설정 |
 | POST | `/posts` | 게시글 생성 |
@@ -316,9 +315,9 @@ Liquibase 기준 파일:
 
 | 테이블 | 역할 | 주요 제약 |
 |---|---|---|
-| `members` | 회원 프로필과 자산 공개 설정 | nickname unique |
+| `members` | 이메일 계정, 비밀번호 해시, 프로필과 자산 공개 설정 | email/nickname unique |
 | `wallets` | 회원별 체인 지갑 | chain_type + address unique |
-| `auth_nonces` | 일회용 로그인 메시지 | UUID PK, expiry/used_at |
+| `auth_nonces` | 로그인·지갑 연결용 일회성 메시지 | UUID PK, purpose, member_id, expiry/used_at |
 | `refresh_tokens` | refresh token hash | token_hash unique |
 | `coins` | 코인/커뮤니티 기준 정보 | symbol unique |
 | `asset_snapshots` | 회원·코인별 최신 자산 | member_id + coin_id unique |
@@ -335,9 +334,10 @@ API client는 `frontend/lib/api.ts`에 있다.
 현재 연동됨:
 
 - 코인 목록 조회
+- 이메일 회원가입·로그인
 - 코인 변경 시 게시글 조회
 - 브라우저 injected EVM wallet 연결
-- nonce 발급, `personal_sign`, 로그인
+- 로그인 계정의 nonce 발급, `personal_sign`, 지갑 연결
 - refresh session
 - 로그아웃
 - ETH 자산 조회
@@ -479,7 +479,7 @@ npm test
 8. RPC timeout, retry, circuit breaker와 provider 장애 대응을 추가한다.
 9. 온체인 잔액과 가격 데이터의 기준 시각을 UI에 명확히 노출한다.
 10. 글·댓글 신고, 차단, moderation, 금칙어, 관리자 권한을 설계한다.
-11. API pagination을 cursor 방식으로 개선한다.
+11. 랜딩·팔로잉 피드는 cursor 방식이다. 코인별 글과 댓글 목록도 데이터 증가 시 cursor 방식으로 확장한다.
 12. N+1 query와 게시글별 likes/comments count query를 집계 query로 최적화한다.
 13. Testcontainers MySQL 8.4 통합 테스트를 실제로 작성하고 CI에 Docker를 제공한다.
 
@@ -490,7 +490,7 @@ npm test
 - 커뮤니티 통계는 현재 실제 집계가 아니다.
 - `CoinController`의 post count는 최대 100건 조회 결과 크기라 정확한 전체 count가 아니다.
 - 게시글 목록 응답 과정에 지갑, 좋아요, 댓글 count 조회가 반복되어 N+1 성격의 비용이 있다.
-- 자산 가격은 고정 환경 변수이므로 시장 가격으로 자동 갱신되지 않는다.
+- 지갑 자산가치 계산용 `ETH_KRW_PRICE`는 여전히 고정 환경 변수다. 게시글 관련 자산 가격은 CoinGecko에서 서버가 조회한다.
 - ETH 이외 코인은 인증 불가다. 체인 타입은 seed에 있지만 구현체가 없다.
 - access token은 `sessionStorage`에 보관한다. XSS 방어를 포함해 인증 저장 전략을 운영 전 재검토한다.
 - refresh token cookie path가 `/api/v1/auth`로 제한되어 있다.
@@ -528,7 +528,7 @@ ghwns9652/cryptalk private 저장소의 작업을 이어가자.
 
 ## 19. 변경 시 유지해야 할 불변 조건
 
-- 지갑 로그인은 반드시 nonce 기반 서명 검증을 거친다.
+- 지갑 연결은 반드시 로그인된 계정에서 nonce 기반 서명 검증을 거친다.
 - 클라이언트가 보내는 자산 금액이나 인증 여부를 신뢰하지 않는다.
 - 인증 여부와 자산 값은 서버가 온체인/가격 데이터를 기준으로 계산한다.
 - 게시글에는 작성 시점 자산 snapshot을 보존한다.

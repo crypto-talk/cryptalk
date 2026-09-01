@@ -16,6 +16,9 @@ test("server-renders the CrypTalk application", async () => {
   const html = await response.text();
   assert.match(html, /CRYPTALK/);
   assert.match(html, /Ethereum/);
-  assert.match(html, /지갑 연결/);
+  assert.match(html, /회원가입하고 커뮤니티에 참여하세요/);
+  assert.match(html, /로그인/);
+  assert.match(html, /모바일 주요 메뉴/);
+  assert.match(html, /내 자산 요약/);
   assert.doesNotMatch(html, /Your site is taking shape/);
 });

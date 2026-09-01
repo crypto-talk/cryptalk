@@ -20,12 +20,16 @@ public class AuthController {
         this.authService = authService; this.secureCookie = secureCookie;
     }
 
-    @PostMapping("/nonce")
-    NonceResponse nonce(@Valid @RequestBody NonceRequest request) { return authService.createNonce(request.walletAddress()); }
+    @PostMapping("/signup")
+    AuthResponse signup(@Valid @RequestBody SignupRequest request, HttpServletResponse response) {
+        AuthService.LoginResult result = authService.signup(request);
+        addCookie(response, result.refreshToken(), 14 * 86400);
+        return result.response();
+    }
 
-    @PostMapping("/wallet")
-    AuthResponse wallet(@Valid @RequestBody WalletLoginRequest request, HttpServletResponse response) {
-        AuthService.LoginResult result = authService.login(request);
+    @PostMapping("/login")
+    AuthResponse emailLogin(@Valid @RequestBody EmailLoginRequest request, HttpServletResponse response) {
+        AuthService.LoginResult result = authService.emailLogin(request);
         addCookie(response, result.refreshToken(), 14 * 86400);
         return result.response();
     }

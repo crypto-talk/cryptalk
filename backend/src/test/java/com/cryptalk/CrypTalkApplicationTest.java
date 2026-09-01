@@ -26,12 +26,41 @@ class CrypTalkApplicationTest {
     }
 
     @Test
-    void createsWalletLoginNonce() throws Exception {
+    void rejectsRemovedWalletLoginEndpoint() throws Exception {
         mvc.perform(post("/api/v1/auth/nonce")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"walletAddress\":\"0x1111111111111111111111111111111111111111\"}"))
+            .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/v1/auth/wallet")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void signsUpAndLogsInWithEmail() throws Exception {
+        mvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\",\"nickname\":\"새회원\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nonceId").isNotEmpty())
-            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("CrypTalk 로그인")));
+            .andExpect(jsonPath("$.accessToken").isNotEmpty())
+            .andExpect(jsonPath("$.member.nickname").value("새회원"))
+            .andExpect(jsonPath("$.member.walletAddress").doesNotExist());
+
+        mvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").isNotEmpty())
+            .andExpect(jsonPath("$.member.nickname").value("새회원"));
+    }
+
+    @Test
+    void rejectsInvalidEmailPassword() throws Exception {
+        mvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"missing@example.com\",\"password\":\"wrong-password\"}"))
+            .andExpect(status().isUnauthorized());
     }
 }

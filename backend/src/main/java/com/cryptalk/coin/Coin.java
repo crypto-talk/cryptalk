@@ -19,6 +19,8 @@ public class Coin {
     private String accentColor;
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
+    @Column(name = "market_price_id", length = 100)
+    private String marketPriceId;
     @Column(nullable = false)
     private boolean active;
     protected Coin() {}
@@ -27,4 +29,5 @@ public class Coin {
     public String getName() { return name; }
     public String getChainType() { return chainType; }
     public String getAccentColor() { return accentColor; }
+    public String getMarketPriceId() { return marketPriceId; }
 }

@@ -1,3 +1,9 @@
 databaseChangeLog:
   - include:
       file: db/changelog/001-initial-schema.sql
+  - include:
+      file: db/changelog/003-hybrid-member-auth.sql
+  - include:
+      file: db/changelog/004-social-features.sql
+  - include:
+      file: db/changelog/005-social-api-completion.sql

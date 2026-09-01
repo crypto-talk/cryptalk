@@ -16,6 +16,10 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
 
 server:
   port: ${PORT:8080}
@@ -32,7 +36,16 @@ cryptalk:
     eth-krw-price: ${ETH_KRW_PRICE:0}
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  media:
+    storage-path: ${MEDIA_STORAGE_PATH:./uploads}
+  market-price:
+    base-url: ${MARKET_PRICE_BASE_URL:https://api.coingecko.com/api/v3}
 
 springdoc:
+  api-docs:
+    path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    persist-authorization: true
