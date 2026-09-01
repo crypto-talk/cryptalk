@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PostMediaRepository extends JpaRepository<PostMedia, Long> {
     List<PostMedia> findByPostIdOrderByDisplayOrder(Long postId);
+    void deleteByPostId(Long postId);
 }

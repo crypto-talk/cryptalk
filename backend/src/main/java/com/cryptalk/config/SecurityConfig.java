@@ -34,7 +34,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/posts/*", "/api/v1/media/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/posts/*", "/api/v1/media/**", "/api/v1/market/prices/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/members/*/social", "/api/v1/members/*/followers", "/api/v1/members/*/following").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/coins", "/api/v1/communities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/comments").permitAll()
@@ -60,7 +60,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource(@Value("${cryptalk.cors.allowed-origins}") String origins) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).toList());
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

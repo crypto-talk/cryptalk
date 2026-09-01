@@ -38,6 +38,8 @@ cryptalk:
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
   media:
     storage-path: ${MEDIA_STORAGE_PATH:./uploads}
+  market-price:
+    base-url: ${MARKET_PRICE_BASE_URL:https://api.coingecko.com/api/v3}
 
 springdoc:
   api-docs:

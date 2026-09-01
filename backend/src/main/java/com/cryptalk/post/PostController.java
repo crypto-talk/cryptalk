@@ -18,14 +18,22 @@ public class PostController {
         return posts.list(symbol, jwt == null ? null : id(jwt), size);
     }
     @GetMapping("/feed")
-    List<PostResponse> feed(@RequestParam(defaultValue="30") int size, @AuthenticationPrincipal Jwt jwt) {
-        return posts.feed(jwt == null ? null : id(jwt), size);
+    FeedPageResponse feed(@RequestParam(required=false) String cursor, @RequestParam(defaultValue="30") int size,
+                          @AuthenticationPrincipal Jwt jwt) {
+        return posts.feed(jwt == null ? null : id(jwt), cursor, size);
+    }
+    @GetMapping("/feed/following")
+    FeedPageResponse followingFeed(@RequestParam(required=false) String cursor,
+                                   @RequestParam(defaultValue="30") int size,
+                                   @AuthenticationPrincipal Jwt jwt) {
+        return posts.followingFeed(id(jwt), cursor, size);
     }
     @GetMapping("/posts/{postId}")
     PostResponse get(@PathVariable Long postId, @AuthenticationPrincipal Jwt jwt) {
         return posts.get(postId, jwt == null ? null : id(jwt));
     }
     @PostMapping("/posts") PostResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreatePostRequest request) { return posts.create(id(jwt), request); }
+    @PutMapping("/posts/{postId}") PostResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId, @Valid @RequestBody UpdatePostRequest request) { return posts.update(id(jwt), postId, request); }
     @DeleteMapping("/posts/{postId}") ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { posts.delete(id(jwt), postId); return ResponseEntity.noContent().build(); }
     @PostMapping("/posts/{postId}/likes") PostResponse like(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.like(id(jwt), postId); }
     @DeleteMapping("/posts/{postId}/likes") PostResponse unlike(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId) { return posts.unlike(id(jwt), postId); }

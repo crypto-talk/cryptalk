@@ -141,8 +141,9 @@ npm run dev
 - 이메일 회원가입·로그인 및 EVM 지갑 메시지 서명 로그인
 - 가입 계정에 EVM 지갑을 선택적으로 연결하는 소유권 인증
 - BCrypt 비밀번호 해시와 JWT/refresh cookie
-- 랜딩 피드, 게시글, 이미지·영상, 좋아요, 댓글, 재게시, 북마크 API
-- 사용자 팔로우와 TradingView 분석·가격 스냅샷·YouTube Shorts 메타데이터
+- cursor 기반 랜딩·팔로잉 피드, 게시글·댓글 수정, 좋아요, 재게시, 북마크 API
+- 소유권 기반 이미지·영상 관리와 게시글 삭제 시 실제 파일 정리
+- 사용자 팔로우와 TradingView 분석·서버 조회 가격 스냅샷·YouTube Shorts 메타데이터
 - Ethereum JSON-RPC 기반 ETH 잔액 인증
 - 자산 공개 범위(정확한 금액/구간/비공개)와 게시 시점 자산 스냅샷
 - MySQL 8.4 및 Liquibase 스키마 관리

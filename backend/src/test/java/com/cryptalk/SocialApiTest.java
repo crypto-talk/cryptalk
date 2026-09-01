@@ -3,12 +3,20 @@ package com.cryptalk;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.cryptalk.coin.Coin;
+import com.cryptalk.market.MarketPriceService;
+import com.cryptalk.market.MarketPriceService.PriceQuote;
+import java.math.BigDecimal;
+import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,12 +25,27 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class SocialApiTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @MockitoBean MarketPriceService marketPrices;
+
+    @BeforeEach
+    void prices() {
+        when(marketPrices.currentPrice(any(Coin.class), nullable(String.class))).thenAnswer(invocation -> {
+            Coin coin = invocation.getArgument(0);
+            String requested = invocation.getArgument(1);
+            String currency = requested == null ? "USD" : requested;
+            return new PriceQuote(coin.getSymbol(), new BigDecimal("4321.25"), currency, Instant.parse("2026-09-01T00:00:00Z"), "COINGECKO");
+        });
+    }
 
     @Test
     void supportsRichPostAndSocialInteractions() throws Exception {
@@ -64,9 +87,14 @@ class SocialApiTest {
 
         mvc.perform(post("/api/v1/posts/{postId}/likes", postId).header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.likes").value(1)).andExpect(jsonPath("$.liked").value(true));
-        mvc.perform(post("/api/v1/posts/{postId}/comments", postId).header("Authorization", bearer(reader.token()))
+        MvcResult comment = mvc.perform(post("/api/v1/posts/{postId}/comments", postId).header("Authorization", bearer(reader.token()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"좋은 분석이에요\"}"))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk()).andReturn();
+        long commentId = json.readTree(comment.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(patch("/api/v1/comments/{commentId}", commentId).header("Authorization", bearer(reader.token()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"수정된 댓글입니다\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.content").value("수정된 댓글입니다"))
+            .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         mvc.perform(post("/api/v1/posts/{postId}/bookmarks", postId).header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.bookmarked").value(true));
         mvc.perform(post("/api/v1/posts/{postId}/reposts", postId).header("Authorization", bearer(reader.token())))
@@ -74,14 +102,60 @@ class SocialApiTest {
         mvc.perform(post("/api/v1/members/{memberId}/follow", author.id()).header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.followers").value(1)).andExpect(jsonPath("$.followedByMe").value(true));
 
-        mvc.perform(get("/api/v1/feed").header("Authorization", bearer(reader.token())))
-            .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(postId))
-            .andExpect(jsonPath("$[0].comments").value(1)).andExpect(jsonPath("$[0].bookmarked").value(true));
+        MvcResult firstPage = mvc.perform(get("/api/v1/feed").param("size", "1").header("Authorization", bearer(reader.token())))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].eventType").value("REPOST"))
+            .andExpect(jsonPath("$.items[0].post.id").value(postId)).andExpect(jsonPath("$.hasMore").value(true))
+            .andExpect(jsonPath("$.nextCursor").isNotEmpty()).andReturn();
+        String cursor = json.readTree(firstPage.getResponse().getContentAsString()).get("nextCursor").asText();
+        mvc.perform(get("/api/v1/feed").param("size", "1").param("cursor", cursor))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].eventType").value("POST"))
+            .andExpect(jsonPath("$.items[0].post.id").value(postId));
+        mvc.perform(get("/api/v1/feed/following").header("Authorization", bearer(reader.token())))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].eventType").value("POST"))
+            .andExpect(jsonPath("$.items[0].actor.id").value(author.id()));
         mvc.perform(get("/api/v1/me/bookmarks").header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(postId));
 
+        String updateBody = """
+            {
+              "title":"수정된 ETH 분석",
+              "content":"수정된 내용입니다.",
+              "media":[{"type":"IMAGE","url":"%s"}],
+              "assetPriceCurrency":"KRW"
+            }
+            """.formatted(mediaUrl);
+        mvc.perform(put("/api/v1/posts/{postId}", postId).header("Authorization", bearer(reader.token()))
+                .contentType(MediaType.APPLICATION_JSON).content(updateBody))
+            .andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/posts/{postId}", postId).header("Authorization", bearer(author.token()))
+                .contentType(MediaType.APPLICATION_JSON).content(updateBody))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("수정된 ETH 분석"))
+            .andExpect(jsonPath("$.priceSnapshot.currency").value("KRW"))
+            .andExpect(jsonPath("$.priceSnapshot.source").value("COINGECKO"));
+
+        String fileName = mediaUrl.substring(mediaUrl.lastIndexOf('/') + 1);
+        mvc.perform(delete("/api/v1/media/{fileName}", fileName).header("Authorization", bearer(author.token())))
+            .andExpect(status().isConflict());
+
         mvc.perform(delete("/api/v1/posts/{postId}/reposts", postId).header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.reposted").value(false));
+        mvc.perform(delete("/api/v1/posts/{postId}", postId).header("Authorization", bearer(author.token())))
+            .andExpect(status().isNoContent());
+        mvc.perform(get(mediaUrl)).andExpect(status().isNotFound());
+
+        MockMultipartFile unused = new MockMultipartFile("file", "unused.png", "image/png", new byte[]{4, 5, 6});
+        MvcResult unusedUpload = mvc.perform(multipart("/api/v1/media").file(unused).header("Authorization", bearer(author.token())))
+            .andExpect(status().isOk()).andReturn();
+        String unusedUrl = json.readTree(unusedUpload.getResponse().getContentAsString()).get("url").asText();
+        String unusedName = unusedUrl.substring(unusedUrl.lastIndexOf('/') + 1);
+        mvc.perform(delete("/api/v1/media/{fileName}", unusedName).header("Authorization", bearer(reader.token())))
+            .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/media/{fileName}", unusedName).header("Authorization", bearer(author.token())))
+            .andExpect(status().isNoContent());
+        mvc.perform(get(unusedUrl)).andExpect(status().isNotFound());
+
+        mvc.perform(get("/api/v1/market/prices/ETH").param("currency", "KRW"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.source").value("COINGECKO"));
     }
 
     private Account signup(String email, String nickname) throws Exception {
