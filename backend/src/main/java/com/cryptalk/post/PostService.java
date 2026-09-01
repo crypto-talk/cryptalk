@@ -142,7 +142,9 @@ public class PostService {
     public void delete(Long memberId, Long postId) {
         Post post = post(postId);
         own(memberId, post.getMember().getId());
-        mediaFiles.deleteManagedAfterCommit(mediaUrls(postMedia.findByPostIdOrderByDisplayOrder(postId)));
+        List<String> mediaUrls = new ArrayList<>(postMedia.findUrlsByPostId(postId));
+        mediaUrls.addAll(postMedia.findThumbnailUrlsByPostId(postId));
+        mediaFiles.deleteManagedAfterCommit(mediaUrls);
         posts.delete(post);
     }
 
