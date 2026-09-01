@@ -1,0 +1,30 @@
+name: Backend feature check
+
+on:
+  push:
+    branches:
+      - "develop/backend/**"
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+      - ".env.example"
+      - ".github/workflows/check-backend-feature.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-feature-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+      - name: Build image and run backend tests
+        run: docker build --file backend/Dockerfile backend
