@@ -45,7 +45,7 @@ class MarketPriceServiceTest {
         MarketPriceService.PriceQuote quote = prices.currentPrice(coin, "krw");
 
         assertEquals("ETH", quote.symbol());
-        assertEquals(new BigDecimal("4321000.50"), quote.price());
+        assertEquals(0, new BigDecimal("4321000.50").compareTo(quote.price()));
         assertEquals("KRW", quote.currency());
         assertEquals(Instant.ofEpochSecond(1788220800), quote.capturedAt());
         assertEquals("COINGECKO", quote.source());
