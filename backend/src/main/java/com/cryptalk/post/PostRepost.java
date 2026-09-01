@@ -23,4 +23,7 @@ public class PostRepost {
     public PostRepost(Post post, Member member) {
         this.id = new PostMemberId(post.getId(), member.getId()); this.post = post; this.member = member; this.createdAt = Instant.now();
     }
+    public Post getPost() { return post; }
+    public Member getMember() { return member; }
+    public Instant getCreatedAt() { return createdAt; }
 }

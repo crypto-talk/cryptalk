@@ -33,6 +33,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
       ETHEREUM_RPC_URL: ${ETHEREUM_RPC_URL:-}
       ETH_KRW_PRICE: ${ETH_KRW_PRICE:-0}
+      MARKET_PRICE_BASE_URL: ${MARKET_PRICE_BASE_URL:-https://api.coingecko.com/api/v3}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       MEDIA_STORAGE_PATH: /app/uploads
     ports:

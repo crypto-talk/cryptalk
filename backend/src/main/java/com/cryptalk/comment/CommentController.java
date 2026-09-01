@@ -16,7 +16,9 @@ public class CommentController {
     public CommentController(CommentService comments) { this.comments = comments; }
     @GetMapping("/posts/{postId}/comments") List<CommentService.CommentResponse> list(@PathVariable Long postId) { return comments.list(postId); }
     @PostMapping("/posts/{postId}/comments") CommentService.CommentResponse create(@AuthenticationPrincipal Jwt jwt, @PathVariable Long postId, @Valid @RequestBody CreateCommentRequest request) { return comments.create(id(jwt), postId, request.content()); }
+    @PatchMapping("/comments/{commentId}") CommentService.CommentResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long commentId, @Valid @RequestBody UpdateCommentRequest request) { return comments.update(id(jwt), commentId, request.content()); }
     @DeleteMapping("/comments/{commentId}") ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long commentId) { comments.delete(id(jwt), commentId); return ResponseEntity.noContent().build(); }
     private Long id(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }
     public record CreateCommentRequest(@NotBlank @Size(max=1000) String content) {}
+    public record UpdateCommentRequest(@NotBlank @Size(max=1000) String content) {}
 }

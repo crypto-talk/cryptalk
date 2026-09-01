@@ -479,7 +479,7 @@ npm test
 8. RPC timeout, retry, circuit breaker와 provider 장애 대응을 추가한다.
 9. 온체인 잔액과 가격 데이터의 기준 시각을 UI에 명확히 노출한다.
 10. 글·댓글 신고, 차단, moderation, 금칙어, 관리자 권한을 설계한다.
-11. API pagination을 cursor 방식으로 개선한다.
+11. 랜딩·팔로잉 피드는 cursor 방식이다. 코인별 글과 댓글 목록도 데이터 증가 시 cursor 방식으로 확장한다.
 12. N+1 query와 게시글별 likes/comments count query를 집계 query로 최적화한다.
 13. Testcontainers MySQL 8.4 통합 테스트를 실제로 작성하고 CI에 Docker를 제공한다.
 
@@ -490,7 +490,7 @@ npm test
 - 커뮤니티 통계는 현재 실제 집계가 아니다.
 - `CoinController`의 post count는 최대 100건 조회 결과 크기라 정확한 전체 count가 아니다.
 - 게시글 목록 응답 과정에 지갑, 좋아요, 댓글 count 조회가 반복되어 N+1 성격의 비용이 있다.
-- 자산 가격은 고정 환경 변수이므로 시장 가격으로 자동 갱신되지 않는다.
+- 지갑 자산가치 계산용 `ETH_KRW_PRICE`는 여전히 고정 환경 변수다. 게시글 관련 자산 가격은 CoinGecko에서 서버가 조회한다.
 - ETH 이외 코인은 인증 불가다. 체인 타입은 seed에 있지만 구현체가 없다.
 - access token은 `sessionStorage`에 보관한다. XSS 방어를 포함해 인증 저장 전략을 운영 전 재검토한다.
 - refresh token cookie path가 `/api/v1/auth`로 제한되어 있다.
