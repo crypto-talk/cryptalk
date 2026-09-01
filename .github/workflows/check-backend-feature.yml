@@ -3,7 +3,7 @@ name: Backend feature check
 on:
   push:
     branches:
-      - "develop/backend/**"
+      - "feature/**"
     paths:
       - "backend/**"
       - "docker-compose.yml"

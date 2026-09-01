@@ -12,7 +12,7 @@
 
 - Treat `develop` as the integration and backend deployment branch.
 - Use the project-local `$feature` skill for backend feature implementation that must be committed and pushed.
-- The `$feature` skill works on `develop/backend/...`; never implement feature work directly on `develop`.
+- The `$feature` skill works on `feature/...` branches based on `origin/develop`; never implement feature work directly on `develop`.
 - Do not merge a feature branch into `develop` unless the user explicitly asks.
 - Preserve unrelated user changes. Never stash, reset, or delete them to make a task easier.
 - Never commit `.env`, credentials, refresh tokens, private keys, database data, or uploaded media.
@@ -32,7 +32,7 @@
 - Backend unit/integration tests: `cd backend && ./gradlew test`.
 - Container-equivalent verification: `docker build --file backend/Dockerfile backend`.
 - Static hygiene: `git diff --check` and review `git diff --stat` plus `git diff`.
-- A push to `develop/backend/**` runs the non-deploying backend feature check.
+- A push to `feature/**` runs the non-deploying backend feature check.
 - A push to `develop` that touches backend deployment paths builds, tests, deploys, and health-checks production.
 
 Read `backend/AGENTS.md` before changing anything under `backend/`.

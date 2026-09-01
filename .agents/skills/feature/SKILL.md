@@ -1,11 +1,11 @@
 ---
 name: feature
-description: Implement, test, commit, and push a CrypTalk backend feature on a develop/backend/... branch. Use when the user invokes $feature, asks to build a backend feature through the repository feature workflow, or supplies a Jira issue key such as CT-123 for implementation. Read the Jira issue when a key is supplied, isolate work from the production checkout, and never merge or push the feature directly to develop.
+description: Implement, test, commit, and push a CrypTalk backend feature on a feature/... branch based on origin/develop. Use when the user invokes $feature, asks to build a backend feature through the repository feature workflow, or supplies a Jira issue key such as CT-123 for implementation. Read the Jira issue when a key is supplied, isolate work from the production checkout, and never merge or push the feature directly to develop.
 ---
 
 # Backend feature workflow
 
-Implement one bounded backend feature and leave a reviewed, tested commit on a remote `develop/backend/...` branch.
+Implement one bounded backend feature and leave a reviewed, tested commit on a remote `feature/...` branch.
 
 ## 1. Establish requirements
 
@@ -22,10 +22,10 @@ Implement one bounded backend feature and leave a reviewed, tested commit on a r
 
 ## 2. Choose the branch
 
-- Jira work: `develop/backend/<ISSUE-KEY>-<short-kebab-summary>`.
-- Non-Jira work: `develop/backend/<short-kebab-feature>`.
+- Jira work: `feature/<ISSUE-KEY>-<short-kebab-summary>`.
+- Non-Jira work: `feature/<short-kebab-feature>`.
 - Keep the branch readable and under 100 characters.
-- If exactly one remote branch already starts with `develop/backend/<ISSUE-KEY>-`, resume it instead of creating a duplicate.
+- If exactly one remote branch already starts with `feature/<ISSUE-KEY>-`, resume it instead of creating a duplicate.
 - If multiple candidates exist or an unrelated branch has the intended name, stop and ask which branch to use.
 
 Always base new work on the latest `origin/develop`. Never commit feature work on local `develop` and never push directly to remote `develop`.
@@ -64,7 +64,7 @@ Fix failing local tests before pushing. If neither Java nor Docker is available,
 
 ## 6. Commit and push
 
-1. Confirm the current branch starts with `develop/backend/`.
+1. Confirm the current branch starts with `feature/`.
 2. Stage only intended files; inspect the staged diff.
 3. Use the repository's Conventional Commit style:
    - Jira: `feat: <concise summary> (<ISSUE-KEY>)`
