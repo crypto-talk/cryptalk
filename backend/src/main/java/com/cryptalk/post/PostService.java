@@ -274,7 +274,9 @@ public class PostService {
             if (!urls.add(item.url())) throw new ApiException(HttpStatus.BAD_REQUEST, "같은 미디어를 중복 등록할 수 없습니다.");
             if (item.thumbnailUrl() != null) validateMediaUrl(item.thumbnailUrl());
             mediaFiles.claim(memberId, post, item.url(), existingUrls.contains(item.url()));
-            mediaFiles.claim(memberId, post, item.thumbnailUrl(), existingUrls.contains(item.thumbnailUrl()));
+            if (item.thumbnailUrl() != null) {
+                mediaFiles.claim(memberId, post, item.thumbnailUrl(), existingUrls.contains(item.thumbnailUrl()));
+            }
             postMedia.save(new PostMedia(post, item.type(), item.url(), item.thumbnailUrl(), index));
         }
     }
