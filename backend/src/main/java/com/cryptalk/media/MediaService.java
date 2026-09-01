@@ -112,7 +112,7 @@ public class MediaService {
             if (fileName != null) fileNames.add(fileName);
         }
         if (fileNames.isEmpty()) return;
-        assets.deleteAllById(fileNames);
+        assets.deleteByFileNameIn(fileNames);
         deleteAfterCommit(fileNames);
     }
 
