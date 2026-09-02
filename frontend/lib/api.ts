@@ -72,6 +72,7 @@ export const api = {
   },
   coins: () => request<ApiCoin[]>("/api/v1/coins"),
   marketPrices: (currency = "KRW") => request<MarketPrice[]>(`/api/v1/market/prices?currency=${encodeURIComponent(currency)}`),
+  marketPrice: (symbol: string, currency = "KRW") => request<MarketPrice>(`/api/v1/market/prices/${encodeURIComponent(symbol)}?currency=${encodeURIComponent(currency)}`),
   posts: (symbol: string) => request<ApiPost[]>(`/api/v1/communities/${symbol}/posts`),
   assets: () => request<Asset[]>("/api/v1/me/assets"),
   createPost: (coinSymbol: string, title: string, content: string) => request<ApiPost>("/api/v1/posts", { method: "POST", body: JSON.stringify({ coinSymbol, title, content }) }),
