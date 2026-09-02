@@ -18,7 +18,13 @@ const coins: Coin[] = [
 const trending = [["1", "ETH 현물 ETF", "1,284 posts"], ["2", "Pectra 업그레이드", "896 posts"], ["3", "스테이킹", "642 posts"], ["4", "레이어 2", "418 posts"]];
 
 const coinMeta: Record<string, Pick<Coin, "price" | "change" | "members" | "holders" | "description">> = Object.fromEntries(coins.map((coin) => [coin.symbol, coin]));
-const toCoin = (coin: ApiCoin): Coin => ({ ...coinMeta[coin.symbol], symbol: coin.symbol, name: coin.name, color: coin.accentColor });
+const toCoin = (coin: ApiCoin): Coin => ({
+  ...(coinMeta[coin.symbol] ?? {
+    price: "—", change: "시세 조회 중", members: "신규", holders: "—",
+    description: `${coin.name} 시장과 생태계 정보를 나누는 커뮤니티`,
+  }),
+  symbol: coin.symbol, name: coin.name, color: coin.accentColor,
+});
 const formatPrice = (price: number) => new Intl.NumberFormat("ko-KR", {
   style: "currency", currency: "KRW", maximumFractionDigits: price >= 100 ? 0 : price >= 1 ? 2 : 4,
 }).format(price);

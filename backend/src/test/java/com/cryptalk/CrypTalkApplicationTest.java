@@ -8,9 +8,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.cryptalk.coin.Coin;
+import com.cryptalk.coin.CoinRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class CrypTalkApplicationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired CoinRepository coins;
 
     @Test
     void documentsEveryControllerWithKoreanSwaggerNamesAndSummaries() throws Exception {
@@ -57,8 +61,16 @@ class CrypTalkApplicationTest {
     void exposesSeededCoins() throws Exception {
         mvc.perform(get("/api/v1/coins"))
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(20))
             .andExpect(jsonPath("$[0].symbol").value("BTC"))
-            .andExpect(jsonPath("$[1].symbol").value("ETH"));
+            .andExpect(jsonPath("$[1].symbol").value("ETH"))
+            .andExpect(jsonPath("$[19].symbol").value("SUI"));
+
+        var activeCoins = coins.findByActiveTrueOrderByDisplayOrder();
+        assertEquals(List.of("BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "BNB", "AVAX", "DOT", "LINK",
+            "POL", "TON", "TRX", "LTC", "BCH", "UNI", "AAVE", "ATOM", "NEAR", "SUI"),
+            activeCoins.stream().map(Coin::getSymbol).toList());
+        assertTrue(activeCoins.stream().allMatch(coin -> coin.getMarketPriceId() != null && !coin.getMarketPriceId().isBlank()));
     }
 
     @Test
