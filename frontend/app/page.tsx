@@ -16,9 +16,12 @@ const coins: Coin[] = [
 ];
 
 const trending = [["1", "ETH 현물 ETF", "1,284 posts"], ["2", "Pectra 업그레이드", "896 posts"], ["3", "스테이킹", "642 posts"], ["4", "레이어 2", "418 posts"]];
+const COIN_PREVIEW_COUNT = 5;
 
-const coinMeta: Record<string, Pick<Coin, "price" | "change" | "members" | "holders" | "description">> = Object.fromEntries(coins.map((coin) => [coin.symbol, coin]));
-const toCoin = (coin: ApiCoin): Coin => ({ ...coinMeta[coin.symbol], symbol: coin.symbol, name: coin.name, color: coin.accentColor });
+type CoinMeta = Pick<Coin, "price" | "change" | "members" | "holders" | "description">;
+const coinMeta: Record<string, CoinMeta> = Object.fromEntries(coins.map((coin) => [coin.symbol, coin]));
+const defaultMeta: CoinMeta = { price: "—", change: "시세 조회 중", members: "—", holders: "—", description: "실시간 시세와 투자 이야기를 나누는 커뮤니티" };
+const toCoin = (coin: ApiCoin): Coin => ({ ...defaultMeta, ...coinMeta[coin.symbol], symbol: coin.symbol, name: coin.name, color: coin.accentColor });
 const formatPrice = (price: number) => new Intl.NumberFormat("ko-KR", {
   style: "currency", currency: "KRW", maximumFractionDigits: price >= 100 ? 0 : price >= 1 ? 2 : 4,
 }).format(price);
@@ -51,9 +54,11 @@ export default function Home() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAllCoins, setShowAllCoins] = useState(false);
   const connected = member !== null;
   const walletLinked = Boolean(member?.walletAddress);
   const filteredCoins = useMemo(() => communityCoins.filter((coin) => `${coin.name} ${coin.symbol}`.toLowerCase().includes(search.toLowerCase())), [search, communityCoins]);
+  const visibleCoins = search || showAllCoins ? filteredCoins : filteredCoins.slice(0, COIN_PREVIEW_COUNT);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +139,7 @@ export default function Home() {
           <div className="sidebar-head"><p>커뮤니티</p><button aria-label="커뮤니티 추가">＋</button></div>
           <label className="coin-search"><span>⌕</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="코인 찾기" /></label>
           <div className="coin-list">
-            {filteredCoins.map((coin) => (
+            {visibleCoins.map((coin) => (
               <button key={coin.symbol} className={`coin-row ${activeCoin.symbol === coin.symbol ? "active" : ""}`} onClick={() => selectCoin(coin)}>
                 <span className="coin-logo" style={{ background: coin.color }}>{coin.symbol.slice(0, 1)}</span>
                 <span className="coin-name"><strong>{coin.name}</strong><small>{coin.symbol}</small></span>
@@ -142,6 +147,11 @@ export default function Home() {
               </button>
             ))}
           </div>
+          {!search && filteredCoins.length > COIN_PREVIEW_COUNT && (
+            <button className="coin-more" onClick={() => setShowAllCoins((open) => !open)}>
+              {showAllCoins ? "접기" : `더보기 (${filteredCoins.length - COIN_PREVIEW_COUNT})`}
+            </button>
+          )}
           <div className="sidebar-foot"><button><span>◈</span> 전체 피드</button><button><span>☆</span> 북마크</button><button><span>◎</span> 내 활동</button></div>
         </aside>
 
