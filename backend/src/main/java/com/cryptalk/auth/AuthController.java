@@ -28,8 +28,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    AuthResponse emailLogin(@Valid @RequestBody EmailLoginRequest request, HttpServletResponse response) {
-        AuthService.LoginResult result = authService.emailLogin(request);
+    AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        AuthService.LoginResult result = authService.login(request);
         addCookie(response, result.refreshToken(), 14 * 86400);
         return result.response();
     }
