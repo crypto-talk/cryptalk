@@ -2,6 +2,8 @@ package com.cryptalk.coin;
 
 import com.cryptalk.common.ApiException;
 import com.cryptalk.post.PostRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -9,11 +11,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1")
+@Tag(name = "코인·커뮤니티", description = "지원 코인 목록과 코인별 커뮤니티 정보 API")
 public class CoinController {
     private final CoinRepository coins; private final PostRepository posts;
     public CoinController(CoinRepository coins, PostRepository posts) { this.coins = coins; this.posts = posts; }
+    @Operation(summary = "지원 코인 목록 조회", description = "현재 활성화된 코인을 화면 표시 순서대로 반환합니다.")
     @GetMapping("/coins")
     List<CoinResponse> coins() { return coins.findByActiveTrueOrderByDisplayOrder().stream().map(this::response).toList(); }
+    @Operation(summary = "코인 커뮤니티 정보 조회", description = "코인 기본 정보, 게시글 수와 커뮤니티 설명을 반환합니다.")
     @GetMapping("/communities/{symbol}")
     CommunityResponse community(@PathVariable String symbol) {
         Coin coin = coins.findBySymbolIgnoreCaseAndActiveTrue(symbol).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "코인 커뮤니티를 찾을 수 없습니다."));

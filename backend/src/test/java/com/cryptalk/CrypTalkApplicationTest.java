@@ -1,21 +1,57 @@
 package com.cryptalk;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class CrypTalkApplicationTest {
     @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
+
+    @Test
+    void documentsEveryControllerWithKoreanSwaggerNamesAndSummaries() throws Exception {
+        MvcResult result = mvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andReturn();
+        JsonNode document = json.readTree(result.getResponse().getContentAsString());
+        Set<String> expectedTags = Set.of("인증", "코인·커뮤니티", "댓글", "실시간 시세", "미디어",
+            "내 정보·자산", "게시글·피드", "팔로우", "지갑 연결");
+        Set<String> actualTags = new HashSet<>();
+        Set<String> httpMethods = Set.of("get", "post", "put", "patch", "delete", "options", "head");
+        int operationCount = 0;
+
+        for (JsonNode path : document.path("paths")) {
+            for (var field : path.properties()) {
+                if (!httpMethods.contains(field.getKey())) continue;
+                JsonNode operation = field.getValue();
+                assertTrue(operation.hasNonNull("summary") && !operation.get("summary").asText().isBlank());
+                operation.path("tags").forEach(tag -> actualTags.add(tag.asText()));
+                operationCount++;
+            }
+        }
+
+        assertEquals(40, operationCount);
+        assertEquals(expectedTags, actualTags);
+        assertFalse(actualTags.stream().anyMatch(tag -> tag.endsWith("-controller")));
+    }
 
     @Test
     void exposesSeededCoins() throws Exception {
