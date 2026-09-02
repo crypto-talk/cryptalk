@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/005-social-api-completion.sql
   - include:
       file: db/changelog/006-login-id.sql
+  - include:
+      file: db/changelog/007-expand-coin-catalog.sql
