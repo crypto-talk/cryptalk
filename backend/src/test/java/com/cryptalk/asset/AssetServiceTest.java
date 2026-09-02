@@ -1,0 +1,54 @@
+package com.cryptalk.asset;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.cryptalk.coin.Coin;
+import com.cryptalk.coin.CoinRepository;
+import com.cryptalk.market.MarketPriceService;
+import com.cryptalk.market.MarketPriceService.PriceQuote;
+import com.cryptalk.member.Member;
+import com.cryptalk.member.MemberRepository;
+import com.cryptalk.wallet.Wallet;
+import com.cryptalk.wallet.WalletRepository;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+
+class AssetServiceTest {
+    @Test
+    void valuesVerifiedEthWithCurrentMarketPrice() {
+        AssetSnapshotRepository snapshots = mock(AssetSnapshotRepository.class);
+        CoinRepository coins = mock(CoinRepository.class);
+        MemberRepository members = mock(MemberRepository.class);
+        WalletRepository wallets = mock(WalletRepository.class);
+        EthereumBalanceClient ethereum = mock(EthereumBalanceClient.class);
+        MarketPriceService marketPrices = mock(MarketPriceService.class);
+        Member member = mock(Member.class);
+        Wallet wallet = mock(Wallet.class);
+        Coin eth = mock(Coin.class);
+        AssetSnapshot snapshot = new AssetSnapshot(member, eth);
+
+        when(members.findById(7L)).thenReturn(Optional.of(member));
+        when(wallets.findFirstByMemberId(7L)).thenReturn(Optional.of(wallet));
+        when(wallet.getAddress()).thenReturn("0x1111111111111111111111111111111111111111");
+        when(coins.findBySymbolIgnoreCaseAndActiveTrue("ETH")).thenReturn(Optional.of(eth));
+        when(eth.getId()).thenReturn(2L);
+        when(eth.getSymbol()).thenReturn("ETH");
+        when(ethereum.balanceOf(wallet.getAddress()))
+            .thenReturn(new EthereumBalanceClient.BalanceResult(new BigDecimal("2"), "VERIFIED"));
+        when(marketPrices.currentPrice(eth, "KRW")).thenReturn(new PriceQuote("ETH", new BigDecimal("3242542"),
+            "KRW", new BigDecimal("-3.45"), Instant.parse("2026-09-02T12:49:50Z"), "COINGECKO"));
+        when(snapshots.findByMemberIdAndCoinId(7L, 2L)).thenReturn(Optional.of(snapshot));
+        when(snapshots.findByMemberIdOrderByCoinDisplayOrder(7L)).thenReturn(List.of(snapshot));
+        AssetService service = new AssetService(snapshots, coins, members, wallets, ethereum, marketPrices);
+
+        AssetService.AssetResponse asset = service.refreshAndList(7L).get(0);
+
+        assertEquals(0, new BigDecimal("6485084").compareTo(asset.valueKrw()));
+        assertEquals("VERIFIED", asset.status());
+    }
+}

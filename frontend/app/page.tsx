@@ -1,24 +1,36 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { api, ApiCoin, ApiPost, Asset, linkInjectedWallet, Member, refreshSession } from "../lib/api";
+import { api, ApiCoin, ApiPost, Asset, linkInjectedWallet, MarketPrice, Member, refreshSession } from "../lib/api";
 
 type Coin = { symbol: string; name: string; price: string; change: string; color: string; members: string; holders: string; description: string; };
 type Post = { id: number; name: string; handle: string; initials: string; time: string; title: string; body: string; asset: string; verified: boolean; likes: number; comments: number; tag?: string; liked?: boolean; };
 type AuthMode = "login" | "signup" | "link";
 
 const coins: Coin[] = [
-  { symbol: "BTC", name: "Bitcoin", price: "₩158.2M", change: "+2.84%", color: "#f7931a", members: "128K", holders: "82%", description: "비트코인 시장, 온체인 흐름과 장기 투자 이야기를 나누는 공간" },
-  { symbol: "ETH", name: "Ethereum", price: "₩5.42M", change: "+4.12%", color: "#627eea", members: "94K", holders: "76%", description: "이더리움 생태계와 시장에 대해 가장 빠르게 이야기하는 공간" },
-  { symbol: "SOL", name: "Solana", price: "₩248K", change: "+6.31%", color: "#7c5cff", members: "61K", holders: "69%", description: "솔라나 생태계, 밈코인과 디파이 정보를 나누는 공간" },
-  { symbol: "XRP", name: "XRP", price: "₩3,218", change: "-0.72%", color: "#23292f", members: "48K", holders: "74%", description: "XRP와 글로벌 결제 시장에 대한 투자자 커뮤니티" },
-  { symbol: "DOGE", name: "Dogecoin", price: "₩292", change: "+1.19%", color: "#c9a633", members: "42K", holders: "58%", description: "도지코인 홀더들의 유쾌하고 솔직한 투자 이야기" },
+  { symbol: "BTC", name: "Bitcoin", price: "—", change: "시세 조회 중", color: "#f7931a", members: "128K", holders: "82%", description: "비트코인 시장, 온체인 흐름과 장기 투자 이야기를 나누는 공간" },
+  { symbol: "ETH", name: "Ethereum", price: "—", change: "시세 조회 중", color: "#627eea", members: "94K", holders: "76%", description: "이더리움 생태계와 시장에 대해 가장 빠르게 이야기하는 공간" },
+  { symbol: "SOL", name: "Solana", price: "—", change: "시세 조회 중", color: "#7c5cff", members: "61K", holders: "69%", description: "솔라나 생태계, 밈코인과 디파이 정보를 나누는 공간" },
+  { symbol: "XRP", name: "XRP", price: "—", change: "시세 조회 중", color: "#23292f", members: "48K", holders: "74%", description: "XRP와 글로벌 결제 시장에 대한 투자자 커뮤니티" },
+  { symbol: "DOGE", name: "Dogecoin", price: "—", change: "시세 조회 중", color: "#c9a633", members: "42K", holders: "58%", description: "도지코인 홀더들의 유쾌하고 솔직한 투자 이야기" },
 ];
 
 const trending = [["1", "ETH 현물 ETF", "1,284 posts"], ["2", "Pectra 업그레이드", "896 posts"], ["3", "스테이킹", "642 posts"], ["4", "레이어 2", "418 posts"]];
 
 const coinMeta: Record<string, Pick<Coin, "price" | "change" | "members" | "holders" | "description">> = Object.fromEntries(coins.map((coin) => [coin.symbol, coin]));
 const toCoin = (coin: ApiCoin): Coin => ({ ...coinMeta[coin.symbol], symbol: coin.symbol, name: coin.name, color: coin.accentColor });
+const formatPrice = (price: number) => new Intl.NumberFormat("ko-KR", {
+  style: "currency", currency: "KRW", maximumFractionDigits: price >= 100 ? 0 : price >= 1 ? 2 : 4,
+}).format(price);
+const withMarketPrices = (items: Coin[], prices: MarketPrice[]) => {
+  const bySymbol = new Map(prices.map((price) => [price.symbol, price]));
+  return items.map((coin) => {
+    const market = bySymbol.get(coin.symbol);
+    if (!market) return coin;
+    const change = market.change24h;
+    return { ...coin, price: formatPrice(market.price), change: change == null ? "등락률 미제공" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` };
+  });
+};
 const toPost = (post: ApiPost): Post => ({
   id: post.id, name: post.author.nickname, handle: post.author.walletAddress ?? "일반 회원", initials: post.author.nickname.slice(0, 2).toUpperCase(),
   time: new Intl.RelativeTimeFormat("ko", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(post.createdAt).getTime()) / 60000)), "minute"),
@@ -44,8 +56,22 @@ export default function Home() {
   const filteredCoins = useMemo(() => communityCoins.filter((coin) => `${coin.name} ${coin.symbol}`.toLowerCase().includes(search.toLowerCase())), [search, communityCoins]);
 
   useEffect(() => {
-    api.coins().then((items) => { const loaded = items.map(toCoin); setCommunityCoins(loaded); setActiveCoin(loaded.find((coin) => coin.symbol === "ETH") ?? loaded[0]); }).catch(() => setError("백엔드 서버에 연결할 수 없습니다."));
+    let cancelled = false;
+    const refreshPrices = () => api.marketPrices().then((prices) => {
+      if (cancelled) return;
+      setCommunityCoins((items) => withMarketPrices(items, prices));
+      setActiveCoin((coin) => withMarketPrices([coin], prices)[0]);
+    }).catch(() => undefined);
+    api.coins().then((items) => {
+      if (cancelled) return;
+      const loaded = items.map(toCoin);
+      setCommunityCoins(loaded);
+      setActiveCoin(loaded.find((coin) => coin.symbol === "ETH") ?? loaded[0]);
+      refreshPrices();
+    }).catch(() => setError("백엔드 서버에 연결할 수 없습니다."));
     refreshSession().then((profile) => { setMember(profile); if (profile) api.assets().then(setAssets).catch(() => undefined); });
+    const interval = window.setInterval(refreshPrices, 30_000);
+    return () => { cancelled = true; window.clearInterval(interval); };
   }, []);
 
   useEffect(() => {

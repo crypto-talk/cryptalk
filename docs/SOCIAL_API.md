@@ -242,17 +242,22 @@ DELETE도 이미 취소된 상태에서 안전하게 반복할 수 있습니다.
 
 ## 실시간 가격
 
-`GET /market/prices/ETH?currency=KRW`는 서버가 현재 가격을 조회해 다음 형태로 반환합니다.
+`GET /market/prices/ETH?currency=KRW`는 서버가 현재 가격과 24시간 등락률을 조회해 다음 형태로 반환합니다.
 
 ```json
 {
   "symbol": "ETH",
   "price": 4321000.50,
   "currency": "KRW",
+  "change24h": 2.75,
   "capturedAt": "2026-09-01T09:59:40Z",
   "source": "COINGECKO"
 }
 ```
+
+`GET /market/prices?currency=KRW`는 모든 활성 코인의 같은 응답 객체를 표시 순서대로 배열로
+반환합니다. 공급자에는 코인 ID를 묶어 한 번만 요청하므로 커뮤니티 화면은 이 API를 30초마다
+호출합니다. `change24h`는 공급자가 등락률을 제공하지 않으면 `null`일 수 있습니다.
 
 가격은 20초간 서버 캐시를 사용합니다. 공급자 장애나 rate limit으로 조회하지 못하면
 `503 Service Unavailable`을 반환하며 가격이 없는 게시글을 저장하지 않습니다. 운영 환경은

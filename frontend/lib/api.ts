@@ -1,6 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export type ApiCoin = { id: number; symbol: string; name: string; chainType: string; accentColor: string };
+export type MarketPrice = { symbol: string; price: number; currency: string; change24h: number | null; capturedAt: string; source: string };
 export type Member = { id: number; nickname: string; avatarColor: string; walletAddress: string | null; assetVisibility: string };
 export type Asset = { symbol: string; quantity: number; valueKrw: number; verified: boolean; status: string; capturedAt: string };
 export type ApiPost = {
@@ -70,6 +71,7 @@ export const api = {
     setToken(auth.accessToken); return auth.member;
   },
   coins: () => request<ApiCoin[]>("/api/v1/coins"),
+  marketPrices: (currency = "KRW") => request<MarketPrice[]>(`/api/v1/market/prices?currency=${encodeURIComponent(currency)}`),
   posts: (symbol: string) => request<ApiPost[]>(`/api/v1/communities/${symbol}/posts`),
   assets: () => request<Asset[]>("/api/v1/me/assets"),
   createPost: (coinSymbol: string, title: string, content: string) => request<ApiPost>("/api/v1/posts", { method: "POST", body: JSON.stringify({ coinSymbol, title, content }) }),

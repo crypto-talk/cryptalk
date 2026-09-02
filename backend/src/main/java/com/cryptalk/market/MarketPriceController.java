@@ -3,6 +3,7 @@ package com.cryptalk.market;
 import com.cryptalk.coin.Coin;
 import com.cryptalk.coin.CoinRepository;
 import com.cryptalk.common.ApiException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,11 @@ public class MarketPriceController {
 
     public MarketPriceController(CoinRepository coins, MarketPriceService prices) {
         this.coins = coins; this.prices = prices;
+    }
+
+    @GetMapping
+    List<MarketPriceService.PriceQuote> current(@RequestParam(defaultValue = "KRW") String currency) {
+        return prices.currentPrices(coins.findByActiveTrueOrderByDisplayOrder(), currency);
     }
 
     @GetMapping("/{symbol}")
