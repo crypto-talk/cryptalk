@@ -61,12 +61,12 @@ export async function linkInjectedWallet(): Promise<Member> {
 }
 
 export const api = {
-  signup: async (email: string, password: string, nickname: string) => {
-    const auth = await request<{ accessToken: string; member: Member }>("/api/v1/auth/signup", { method: "POST", body: JSON.stringify({ email, password, nickname }) });
+  signup: async (loginId: string, password: string, nickname: string) => {
+    const auth = await request<{ accessToken: string; member: Member }>("/api/v1/auth/signup", { method: "POST", body: JSON.stringify({ loginId, password, nickname }) });
     setToken(auth.accessToken); return auth.member;
   },
-  emailLogin: async (email: string, password: string) => {
-    const auth = await request<{ accessToken: string; member: Member }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+  login: async (loginId: string, password: string) => {
+    const auth = await request<{ accessToken: string; member: Member }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ loginId, password }) });
     setToken(auth.accessToken); return auth.member;
   },
   coins: () => request<ApiCoin[]>("/api/v1/coins"),
