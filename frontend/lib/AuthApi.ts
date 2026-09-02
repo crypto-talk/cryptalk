@@ -17,13 +17,13 @@ export type AuthResponse = {
 };
 
 export type SignupRequest = {
-  email: string;
+  loginId: string;
   password: string;
   nickname: string;
 };
 
 export type LoginRequest = {
-  email: string;
+  loginId: string;
   password: string;
 };
 
@@ -80,7 +80,7 @@ async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const AuthApi = {
   /**
-   * 이메일/비밀번호로 로그인합니다.
+   * 로그인 아이디/비밀번호로 로그인합니다.
    * 성공 시 accessToken을 sessionStorage에 저장하고 AuthResponse를 반환합니다.
    */
   async login(body: LoginRequest): Promise<AuthResponse> {
@@ -93,7 +93,7 @@ export const AuthApi = {
   },
 
   /**
-   * 이메일/비밀번호/닉네임으로 회원가입합니다.
+   * 로그인 아이디/비밀번호/닉네임으로 회원가입합니다.
    * 성공 시 accessToken을 sessionStorage에 저장하고 AuthResponse를 반환합니다.
    */
   async signup(body: SignupRequest): Promise<AuthResponse> {
