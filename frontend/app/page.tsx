@@ -148,7 +148,7 @@ export default function Home() {
         <section className="feed">
           {mobileSearchOpen && <label className="mobile-search"><span>⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="코인 또는 심볼 검색" autoFocus /><button type="button" onClick={() => setMobileSearchOpen(false)} aria-label="검색 닫기">×</button></label>}
           <div className="community-hero">
-            <div className="hero-main"><span className="hero-logo" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><div><div className="eyebrow">{activeCoin.symbol} COMMUNITY</div><h1>{activeCoin.name}</h1><p>{activeCoin.description}</p></div></div>
+            <div className="hero-main"><span className="hero-logo" style={{ background: activeCoin.color }}>{activeCoin.symbol.slice(0, 1)}</span><div><div className="eyebrow">{activeCoin.symbol} COMMUNITY</div><h1>{activeCoin.name}</h1><p>{activeCoin.description}</p><p className="hero-price"><strong>{activeCoin.price}</strong><span className={activeCoin.change.startsWith("-") ? "down" : "up"}>{activeCoin.change}</span><small>24시간</small></p></div></div>
             <div className="community-stats"><div><strong>{activeCoin.members}</strong><span>멤버</span></div><i /><div><strong>{activeCoin.holders}</strong><span>보유 인증률</span></div><button className="write-button" onClick={openComposer}>＋ 글쓰기</button></div>
           </div>
           <div className="feed-controls"><div className="tabs">{["인기", "최신", "보유 인증"].map((item) => <button key={item} className={filter === item ? "active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div><button className="sort-button">24시간 <span>⌄</span></button></div>
