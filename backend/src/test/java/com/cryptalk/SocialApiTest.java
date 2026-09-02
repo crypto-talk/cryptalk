@@ -49,8 +49,8 @@ class SocialApiTest {
 
     @Test
     void supportsRichPostAndSocialInteractions() throws Exception {
-        Account author = signup("social-author@example.com", "작성자");
-        Account reader = signup("social-reader@example.com", "독자");
+        Account author = signup("social-author", "작성자");
+        Account reader = signup("social-reader", "독자");
 
         MockMultipartFile image = new MockMultipartFile("file", "chart.png", "image/png", new byte[]{1, 2, 3});
         MvcResult upload = mvc.perform(multipart("/api/v1/media").file(image).header("Authorization", bearer(author.token())))
@@ -158,8 +158,8 @@ class SocialApiTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.source").value("COINGECKO"));
     }
 
-    private Account signup(String email, String nickname) throws Exception {
-        String body = "{\"email\":\"" + email + "\",\"password\":\"strong-password-123\",\"nickname\":\"" + nickname + "\"}";
+    private Account signup(String loginId, String nickname) throws Exception {
+        String body = "{\"loginId\":\"" + loginId + "\",\"password\":\"strong-password-123\",\"nickname\":\"" + nickname + "\"}";
         MvcResult result = mvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
             .andExpect(status().isOk()).andReturn();
         JsonNode response = json.readTree(result.getResponse().getContentAsString());

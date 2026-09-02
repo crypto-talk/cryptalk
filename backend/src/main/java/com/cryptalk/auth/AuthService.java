@@ -40,22 +40,22 @@ public class AuthService {
 
     @Transactional
     public LoginResult signup(SignupRequest request) {
-        String email = request.email().trim().toLowerCase();
+        String loginId = request.loginId().toLowerCase();
         String nickname = request.nickname().trim();
-        if (members.findByEmailIgnoreCase(email).isPresent())
-            throw new ApiException(HttpStatus.CONFLICT, "이미 가입된 이메일입니다.");
+        if (members.findByLoginIdIgnoreCase(loginId).isPresent())
+            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
         if (members.findByNickname(nickname).isPresent())
             throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
-        Member member = members.save(new Member(email, passwordEncoder.encode(request.password()), nickname, colorFor(email)));
+        Member member = members.save(new Member(loginId, passwordEncoder.encode(request.password()), nickname, colorFor(loginId)));
         return issueTokens(member, null);
     }
 
     @Transactional
-    public LoginResult emailLogin(EmailLoginRequest request) {
-        Member member = members.findByEmailIgnoreCase(request.email().trim())
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+    public LoginResult login(LoginRequest request) {
+        Member member = members.findByLoginIdIgnoreCase(request.loginId().trim())
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."));
         if (member.getPasswordHash() == null || !passwordEncoder.matches(request.password(), member.getPasswordHash()))
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
         String address = wallets.findFirstByMemberId(member.getId()).map(Wallet::getAddress).orElse(null);
         return issueTokens(member, address);
     }

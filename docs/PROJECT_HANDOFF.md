@@ -26,7 +26,7 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 
 핵심 제품 정책은 다음과 같다.
 
-1. 사용자는 이메일과 비밀번호로만 가입·로그인한다.
+1. 사용자는 아이디와 비밀번호로 가입·로그인한다.
 2. 가입 계정은 지갑 메시지 서명으로 지갑을 선택적으로 연결하고 자산을 인증한다.
 3. BTC, ETH, SOL, XRP, DOGE처럼 코인별로 독립된 커뮤니티 피드가 있다.
 4. 사용자가 글을 작성하면 프로필 옆에 자산 공개 정보가 표시된다.
@@ -34,7 +34,7 @@ CrypTalk는 암호화폐 종류별 커뮤니티다.
 6. 자산 표시는 `정확한 금액`, `금액 구간`, `비공개` 중 사용자가 선택한다.
 7. 게시글에는 조회할 때의 실시간 잔액이 아니라 작성 시점 자산 스냅샷을 보존한다.
 
-현재 MVP는 이메일 회원가입·로그인, 로그인 계정의 EVM 지갑 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
+현재 MVP는 아이디 회원가입·로그인, 로그인 계정의 EVM 지갑 연결, ETH 온체인 잔액 검증까지 구현했다. BTC, SOL, XRP, DOGE 커뮤니티와 글 작성은 가능하지만 해당 체인의 보유 인증기는 아직 없다.
 
 ## 3. 확정 기술 스택
 
@@ -129,7 +129,7 @@ cryptalk/
 
 ### `auth`
 
-- 이메일 회원가입·로그인과 BCrypt 비밀번호 검증
+- 아이디 회원가입·로그인과 BCrypt 비밀번호 검증
 - 로그인 nonce 생성 및 5분 만료
 - Ethereum `personal_sign` 검증
 - 최초 로그인 시 회원과 EVM 지갑 자동 생성
@@ -196,7 +196,7 @@ sequenceDiagram
     participant B as Backend
     participant DB as MySQL
 
-    U->>F: 이메일과 비밀번호 입력
+    U->>F: 아이디와 비밀번호 입력
     F->>B: POST /api/v1/auth/login
     B->>DB: 회원 조회 및 BCrypt 검증
     B->>DB: refresh token hash 저장
@@ -238,8 +238,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 | Method | Path | 설명 |
 |---|---|---|
-| POST | `/auth/signup` | 이메일, 비밀번호, 닉네임으로 가입 |
-| POST | `/auth/login` | 이메일과 비밀번호로 로그인 |
+| POST | `/auth/signup` | 아이디, 비밀번호, 닉네임으로 가입 |
+| POST | `/auth/login` | 아이디와 비밀번호로 로그인 |
 | POST | `/auth/refresh` | refresh cookie 회전 및 access token 재발급 |
 | POST | `/auth/logout` | refresh token revoke 및 cookie 삭제 |
 | GET | `/coins` | 활성 코인 목록 |
@@ -315,7 +315,7 @@ Liquibase 기준 파일:
 
 | 테이블 | 역할 | 주요 제약 |
 |---|---|---|
-| `members` | 이메일 계정, 비밀번호 해시, 프로필과 자산 공개 설정 | email/nickname unique |
+| `members` | 로그인 아이디, 비밀번호 해시, 프로필과 자산 공개 설정 | login_id/nickname unique |
 | `wallets` | 회원별 체인 지갑 | chain_type + address unique |
 | `auth_nonces` | 로그인·지갑 연결용 일회성 메시지 | UUID PK, purpose, member_id, expiry/used_at |
 | `refresh_tokens` | refresh token hash | token_hash unique |
@@ -331,10 +331,10 @@ Liquibase 기준 파일:
 
 API client는 `frontend/lib/api.ts`에 있다.
 
-현재 연동됨:
+현재 백엔드에서 지원됨:
 
 - 코인 목록 조회
-- 이메일 회원가입·로그인
+- 아이디 회원가입·로그인 (`loginId` 요청 필드)
 - 코인 변경 시 게시글 조회
 - 브라우저 injected EVM wallet 연결
 - 로그인 계정의 nonce 발급, `personal_sign`, 지갑 연결
@@ -344,6 +344,9 @@ API client는 `frontend/lib/api.ts`에 있다.
 - 게시글 작성
 - 좋아요/취소
 - 인증 작성자 마크와 자산 표시
+
+`frontend/`의 인증 폼과 API client는 아직 이메일 요청 필드를 사용하므로,
+백엔드의 `loginId` 계약에 맞춘 별도 프론트엔드 변경이 필요하다.
 
 현재 UI에 남은 정적/미구현 요소:
 

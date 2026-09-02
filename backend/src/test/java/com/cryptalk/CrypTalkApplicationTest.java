@@ -39,10 +39,10 @@ class CrypTalkApplicationTest {
     }
 
     @Test
-    void signsUpAndLogsInWithEmail() throws Exception {
+    void signsUpAndLogsInWithLoginId() throws Exception {
         mvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\",\"nickname\":\"새회원\"}"))
+                .content("{\"loginId\":\"satoshi_21\",\"password\":\"strong-password-123\",\"nickname\":\"새회원\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken").isNotEmpty())
             .andExpect(jsonPath("$.member.nickname").value("새회원"))
@@ -50,17 +50,38 @@ class CrypTalkApplicationTest {
 
         mvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\"}"))
+                .content("{\"loginId\":\"SATOSHI_21\",\"password\":\"strong-password-123\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken").isNotEmpty())
             .andExpect(jsonPath("$.member.nickname").value("새회원"));
     }
 
     @Test
-    void rejectsInvalidEmailPassword() throws Exception {
+    void rejectsInvalidLoginIdPassword() throws Exception {
         mvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"missing@example.com\",\"password\":\"wrong-password\"}"))
+                .content("{\"loginId\":\"missing-user\",\"password\":\"wrong-password\"}"))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectsEmailOnlyLoginRequest() throws Exception {
+        mvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsDuplicateLoginIdIgnoringCase() throws Exception {
+        mvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"loginId\":\"duplicate-user\",\"password\":\"strong-password-123\",\"nickname\":\"첫회원\"}"))
+            .andExpect(status().isOk());
+
+        mvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"loginId\":\"DUPLICATE-USER\",\"password\":\"strong-password-123\",\"nickname\":\"둘째회원\"}"))
+            .andExpect(status().isConflict());
     }
 }
