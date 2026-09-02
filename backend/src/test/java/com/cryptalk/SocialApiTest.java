@@ -16,6 +16,7 @@ import com.cryptalk.market.MarketPriceService;
 import com.cryptalk.market.MarketPriceService.PriceQuote;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +45,13 @@ class SocialApiTest {
             Coin coin = invocation.getArgument(0);
             String requested = invocation.getArgument(1);
             String currency = requested == null ? "USD" : requested;
-            return new PriceQuote(coin.getSymbol(), new BigDecimal("4321.25"), currency, Instant.parse("2026-09-01T00:00:00Z"), "COINGECKO");
+            return quote(coin, currency);
+        });
+        when(marketPrices.currentPrices(anyList(), nullable(String.class))).thenAnswer(invocation -> {
+            List<Coin> coins = invocation.getArgument(0);
+            String requested = invocation.getArgument(1);
+            String currency = requested == null ? "KRW" : requested;
+            return coins.stream().map(coin -> quote(coin, currency)).toList();
         });
     }
 
@@ -156,6 +164,15 @@ class SocialApiTest {
 
         mvc.perform(get("/api/v1/market/prices/ETH").param("currency", "KRW"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.source").value("COINGECKO"));
+        mvc.perform(get("/api/v1/market/prices").param("currency", "KRW"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].symbol").value("BTC"))
+            .andExpect(jsonPath("$[0].change24h").value(2.75))
+            .andExpect(jsonPath("$[4].symbol").value("DOGE"));
+    }
+
+    private PriceQuote quote(Coin coin, String currency) {
+        return new PriceQuote(coin.getSymbol(), new BigDecimal("4321.25"), currency, new BigDecimal("2.75"),
+            Instant.parse("2026-09-01T00:00:00Z"), "COINGECKO");
     }
 
     private Account signup(String loginId, String nickname) throws Exception {
