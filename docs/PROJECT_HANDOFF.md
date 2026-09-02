@@ -341,12 +341,12 @@ API client는 `frontend/lib/api.ts`에 있다.
 - refresh session
 - 로그아웃
 - ETH 자산 조회
-
-`frontend/`의 인증 폼과 API client는 아직 이메일 요청 필드를 사용하므로,
-백엔드의 `loginId` 계약에 맞춘 별도 프론트엔드 변경이 필요하다.
 - 게시글 작성
 - 좋아요/취소
 - 인증 작성자 마크와 자산 표시
+
+`frontend/`의 인증 폼과 API client는 아직 이메일 요청 필드를 사용하므로,
+백엔드의 `loginId` 계약에 맞춘 별도 프론트엔드 변경이 필요하다.
 
 현재 UI에 남은 정적/미구현 요소:
 
