@@ -12,6 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cryptalk.coin.Coin;
+import com.cryptalk.asset.EthereumBalanceClient;
+import com.cryptalk.member.MemberRepository;
+import com.cryptalk.wallet.Wallet;
+import com.cryptalk.wallet.WalletRepository;
 import com.cryptalk.market.MarketPriceService;
 import com.cryptalk.market.MarketPriceService.PriceQuote;
 import java.math.BigDecimal;
@@ -37,10 +41,15 @@ import static org.mockito.Mockito.when;
 class SocialApiTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired MemberRepository members;
+    @Autowired WalletRepository wallets;
     @MockitoBean MarketPriceService marketPrices;
+    @MockitoBean EthereumBalanceClient ethereum;
 
     @BeforeEach
     void prices() {
+        when(ethereum.balanceOf(any(String.class)))
+            .thenReturn(new EthereumBalanceClient.BalanceResult(new BigDecimal("12.5"), "VERIFIED"));
         when(marketPrices.currentPrice(any(Coin.class), nullable(String.class))).thenAnswer(invocation -> {
             Coin coin = invocation.getArgument(0);
             String requested = invocation.getArgument(1);
@@ -59,6 +68,8 @@ class SocialApiTest {
     void supportsRichPostAndSocialInteractions() throws Exception {
         Account author = signup("social-author", "작성자");
         Account reader = signup("social-reader", "독자");
+        wallets.save(new Wallet(members.findById(author.id()).orElseThrow(),
+            "0x3333333333333333333333333333333333333333"));
 
         MockMultipartFile image = new MockMultipartFile("file", "chart.png", "image/png", new byte[]{1, 2, 3});
         MvcResult upload = mvc.perform(multipart("/api/v1/media").file(image).header("Authorization", bearer(author.token())))
@@ -90,14 +101,22 @@ class SocialApiTest {
             .andExpect(jsonPath("$.priceSnapshot.capturedAt").isNotEmpty())
             .andExpect(jsonPath("$.youtube.videoId").value("dQw4w9WgXcQ"))
             .andExpect(jsonPath("$.youtube.thumbnailUrl").value("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"))
+            .andExpect(jsonPath("$.holderSnapshot.verificationAvailability").value("SUPPORTED"))
+            .andExpect(jsonPath("$.holderSnapshot.verificationLevel").value("WALLET"))
+            .andExpect(jsonPath("$.holderSnapshot.quantityBand").value("10~100 ETH"))
             .andReturn();
+        String publishedPriceAt = json.readTree(created.getResponse().getContentAsString())
+            .get("priceSnapshot").get("capturedAt").asText();
         long postId = json.readTree(created.getResponse().getContentAsString()).get("id").asLong();
 
         mvc.perform(post("/api/v1/posts/{postId}/likes", postId).header("Authorization", bearer(reader.token())))
             .andExpect(status().isOk()).andExpect(jsonPath("$.likes").value(1)).andExpect(jsonPath("$.liked").value(true));
         MvcResult comment = mvc.perform(post("/api/v1/posts/{postId}/comments", postId).header("Authorization", bearer(reader.token()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"좋은 분석이에요\"}"))
-            .andExpect(status().isOk()).andReturn();
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.holderSnapshot.verificationAvailability").value("SUPPORTED"))
+            .andExpect(jsonPath("$.holderSnapshot.verificationLevel").value("UNVERIFIED"))
+            .andReturn();
         long commentId = json.readTree(comment.getResponse().getContentAsString()).get("id").asLong();
         mvc.perform(patch("/api/v1/comments/{commentId}", commentId).header("Authorization", bearer(reader.token()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"수정된 댓글입니다\"}"))
@@ -138,8 +157,9 @@ class SocialApiTest {
         mvc.perform(put("/api/v1/posts/{postId}", postId).header("Authorization", bearer(author.token()))
                 .contentType(MediaType.APPLICATION_JSON).content(updateBody))
             .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("수정된 ETH 분석"))
-            .andExpect(jsonPath("$.priceSnapshot.currency").value("KRW"))
-            .andExpect(jsonPath("$.priceSnapshot.source").value("COINGECKO"));
+            .andExpect(jsonPath("$.priceSnapshot.currency").value("USDT"))
+            .andExpect(jsonPath("$.priceSnapshot.capturedAt").value(publishedPriceAt))
+            .andExpect(jsonPath("$.holderSnapshot.verificationAvailability").value("SUPPORTED"));
 
         String fileName = mediaUrl.substring(mediaUrl.lastIndexOf('/') + 1);
         mvc.perform(delete("/api/v1/media/{fileName}", fileName).header("Authorization", bearer(author.token())))

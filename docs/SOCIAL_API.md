@@ -41,6 +41,7 @@
 | 팔로워 목록 | GET | `/members/{memberId}/followers` | 불필요 | `200` |
 | 팔로잉 목록 | GET | `/members/{memberId}/following` | 불필요 | `200` |
 | 현재 자산 가격 | GET | `/market/prices/{symbol}?currency=USD` | 불필요 | `200` |
+| 내 EVM 자산 집계 | GET | `/me/assets` | 필요 | `200` |
 
 조회 응답의 `liked`, `reposted`, `bookmarked`, `followedByMe`는 로그인 사용자를 기준으로
 계산됩니다. 비로그인 조회에서는 `false`입니다. `size`는 1~100 범위로 보정됩니다.
@@ -56,13 +57,13 @@ cursor 내부 형식은 서버 구현 세부사항이므로 클라이언트가 �
     {
       "eventType": "REPOST",
       "occurredAt": "2026-09-01T10:05:00Z",
-      "actor": { "id": 9, "nickname": "재게시자", "avatarColor": "#...", "walletAddress": null },
+      "actor": { "id": 9, "nickname": "재게시자", "avatarColor": "#..." },
       "post": { "id": 42, "title": "ETH 분석" }
     },
     {
       "eventType": "POST",
       "occurredAt": "2026-09-01T10:00:00Z",
-      "actor": { "id": 7, "nickname": "작성자", "avatarColor": "#...", "walletAddress": null },
+      "actor": { "id": 7, "nickname": "작성자", "avatarColor": "#..." },
       "post": { "id": 42, "title": "ETH 분석" }
     }
   ],
@@ -164,7 +165,7 @@ Content-Type: application/json
   "coinSymbol": "ETH",
   "title": "ETH 1시간봉 분석",
   "content": "지지 구간을 확인했습니다.",
-  "author": { "id": 7, "nickname": "작성자", "avatarColor": "#...", "walletAddress": null },
+  "author": { "id": 7, "nickname": "작성자", "avatarColor": "#..." },
   "verifiedHolder": false,
   "assetValueKrw": null,
   "assetDisplay": "자산 비공개",
@@ -179,9 +180,25 @@ Content-Type: application/json
   "youtube": { "url": "https://www.youtube.com/shorts/dQw4w9WgXcQ", "videoId": "dQw4w9WgXcQ", "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" },
   "reposts": 0,
   "reposted": false,
-  "bookmarked": false
+  "bookmarked": false,
+  "holderSnapshot": {
+    "verificationAvailability": "SUPPORTED",
+    "verificationLevel": "UNVERIFIED",
+    "verifiedHolder": false,
+    "quantityBand": null,
+    "holdingMonths": null,
+    "walletCount": 0,
+    "capturedAt": "2026-09-01T10:00:00Z",
+    "blockNumber": null,
+    "syncStatus": "NO_DATA"
+  }
 }
 ```
+
+`holderSnapshot`은 발행할 때 한 번 생성하며 이후 수정하거나 지갑을 해제해도 바뀌지 않습니다.
+Ethereum mainnet ETH는 `SUPPORTED`, 설정이 덜 된 ERC-20은 `NOT_CONFIGURED`, BTC·SOL 같은
+비EVM 자산은 `NOT_SUPPORTED`입니다. 비EVM 자산은 단순 미인증과 구분하기 위해
+`verificationLevel=null`을 반환합니다.
 
 좋아요·재게시·북마크·팔로우의 POST는 같은 요청을 반복해도 중복 생성되지 않으며,
 DELETE도 이미 취소된 상태에서 안전하게 반복할 수 있습니다.
@@ -189,8 +206,8 @@ DELETE도 이미 취소된 상태에서 안전하게 반복할 수 있습니다.
 ## 글과 댓글 수정
 
 `PUT /posts/{postId}`는 제목, 내용, 미디어 및 분석 메타데이터를 전체 교체합니다. `coinSymbol`은
-변경하지 않습니다. `media`를 생략하거나 빈 배열로 보내면 기존 미디어가 제거됩니다. 수정 시
-관련 자산 가격도 다시 조회하고 `updatedAt`을 갱신합니다.
+변경하지 않습니다. `media`를 생략하거나 빈 배열로 보내면 기존 미디어가 제거됩니다. 수정은
+`updatedAt`만 갱신하며 발행 당시 가격과 `holderSnapshot`을 다시 조회하거나 덮어쓰지 않습니다.
 
 ```json
 {
@@ -219,9 +236,52 @@ DELETE도 이미 취소된 상태에서 안전하게 반복할 수 있습니다.
   "avatarColor": "#627eea",
   "content": "수정된 댓글입니다.",
   "createdAt": "2026-09-01T10:00:00Z",
-  "updatedAt": "2026-09-01T10:05:00Z"
+  "updatedAt": "2026-09-01T10:05:00Z",
+  "holderSnapshot": {
+    "verificationAvailability": "SUPPORTED",
+    "verificationLevel": "WALLET",
+    "verifiedHolder": true,
+    "holdingMonths": null,
+    "walletCount": 2,
+    "capturedAt": "2026-09-01T10:00:00Z",
+    "syncStatus": "READY"
+  }
 }
 ```
+
+댓글 스냅샷은 정확한 수량을 내부에 저장하지만 공개 응답에는 수량과 수량 구간을 포함하지 않습니다.
+
+## 내 EVM 자산 집계
+
+`GET /me/assets`는 연결된 모든 EVM 지갑의 Ethereum mainnet ETH 잔액을 합산합니다. 지갑 하나라도
+조회에 실패하면 불완전한 합계를 저장하지 않고 `503 Service Unavailable`을 반환합니다.
+
+```json
+{
+  "walletCount": 2,
+  "assets": [
+    {
+      "symbol": "ETH",
+      "quantity": 12.345,
+      "valueKrw": 53346954.75,
+      "quantityBand": "10~100 ETH",
+      "verified": true,
+      "verificationLevel": "WALLET",
+      "status": "VERIFIED",
+      "walletCount": 2,
+      "holdingSince": null,
+      "holdingMonths": null,
+      "capturedAt": "2026-09-05T10:00:00Z",
+      "blockNumber": null,
+      "syncStatus": "READY"
+    }
+  ]
+}
+```
+
+보유 시작일과 block number는 아직 EVM history indexer가 없으므로 `null`입니다. 거짓 취득일을
+만들지 않고 indexer 연동 후 채웁니다. ERC-20은 contract address와 decimals 및 잔액 client가
+구성된 뒤 같은 응답에 추가합니다.
 
 ## 소셜 동작 응답
 

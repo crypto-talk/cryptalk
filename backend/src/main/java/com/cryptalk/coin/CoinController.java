@@ -25,7 +25,11 @@ public class CoinController {
         long postCount = posts.findByCoinSymbolIgnoreCaseOrderByCreatedAtDesc(symbol, PageRequest.of(0, 100)).size();
         return new CommunityResponse(response(coin), postCount, coin.getName() + " 홀더와 투자자가 정보를 나누는 공간입니다.");
     }
-    private CoinResponse response(Coin coin) { return new CoinResponse(coin.getId(), coin.getSymbol(), coin.getName(), coin.getChainType(), coin.getAccentColor()); }
-    public record CoinResponse(Long id, String symbol, String name, String chainType, String accentColor) {}
+    private CoinResponse response(Coin coin) {
+        return new CoinResponse(coin.getId(), coin.getSymbol(), coin.getName(), coin.getChainType(), coin.getAccentColor(),
+            coin.getVerificationAvailability().name(), coin.getChainId(), coin.getAssetType());
+    }
+    public record CoinResponse(Long id, String symbol, String name, String chainType, String accentColor,
+                               String verificationAvailability, Long chainId, String assetType) {}
     public record CommunityResponse(CoinResponse coin, long postCount, String description) {}
 }

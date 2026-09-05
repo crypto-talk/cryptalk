@@ -52,7 +52,7 @@ class CrypTalkApplicationTest {
             }
         }
 
-        assertEquals(40, operationCount);
+        assertEquals(42, operationCount);
         assertEquals(expectedTags, actualTags);
         assertFalse(actualTags.stream().anyMatch(tag -> tag.endsWith("-controller")));
     }
@@ -63,7 +63,9 @@ class CrypTalkApplicationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(20))
             .andExpect(jsonPath("$[0].symbol").value("BTC"))
+            .andExpect(jsonPath("$[0].verificationAvailability").value("NOT_SUPPORTED"))
             .andExpect(jsonPath("$[1].symbol").value("ETH"))
+            .andExpect(jsonPath("$[1].verificationAvailability").value("SUPPORTED"))
             .andExpect(jsonPath("$[19].symbol").value("SUI"));
 
         var activeCoins = coins.findByActiveTrueOrderByDisplayOrder();

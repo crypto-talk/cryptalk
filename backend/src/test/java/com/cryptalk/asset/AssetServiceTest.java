@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 
 class AssetServiceTest {
     @Test
-    void valuesVerifiedEthWithCurrentMarketPrice() {
+    void aggregatesVerifiedEthAcrossConnectedEvmWallets() {
         AssetSnapshotRepository snapshots = mock(AssetSnapshotRepository.class);
         CoinRepository coins = mock(CoinRepository.class);
         MemberRepository members = mock(MemberRepository.class);
@@ -29,17 +29,21 @@ class AssetServiceTest {
         MarketPriceService marketPrices = mock(MarketPriceService.class);
         Member member = mock(Member.class);
         Wallet wallet = mock(Wallet.class);
+        Wallet secondWallet = mock(Wallet.class);
         Coin eth = mock(Coin.class);
         AssetSnapshot snapshot = new AssetSnapshot(member, eth);
 
         when(members.findById(7L)).thenReturn(Optional.of(member));
-        when(wallets.findFirstByMemberId(7L)).thenReturn(Optional.of(wallet));
+        when(wallets.findByMemberIdOrderByCreatedAtAsc(7L)).thenReturn(List.of(wallet, secondWallet));
         when(wallet.getAddress()).thenReturn("0x1111111111111111111111111111111111111111");
+        when(secondWallet.getAddress()).thenReturn("0x2222222222222222222222222222222222222222");
         when(coins.findBySymbolIgnoreCaseAndActiveTrue("ETH")).thenReturn(Optional.of(eth));
         when(eth.getId()).thenReturn(2L);
         when(eth.getSymbol()).thenReturn("ETH");
         when(ethereum.balanceOf(wallet.getAddress()))
             .thenReturn(new EthereumBalanceClient.BalanceResult(new BigDecimal("2"), "VERIFIED"));
+        when(ethereum.balanceOf(secondWallet.getAddress()))
+            .thenReturn(new EthereumBalanceClient.BalanceResult(new BigDecimal("3"), "VERIFIED"));
         when(marketPrices.currentPrice(eth, "KRW")).thenReturn(new PriceQuote("ETH", new BigDecimal("3242542"),
             "KRW", new BigDecimal("-3.45"), Instant.parse("2026-09-02T12:49:50Z"), "COINGECKO"));
         when(snapshots.findByMemberIdAndCoinId(7L, 2L)).thenReturn(Optional.of(snapshot));
@@ -48,7 +52,9 @@ class AssetServiceTest {
 
         AssetService.AssetResponse asset = service.refreshAndList(7L).get(0);
 
-        assertEquals(0, new BigDecimal("6485084").compareTo(asset.valueKrw()));
+        assertEquals(0, new BigDecimal("16212710").compareTo(asset.valueKrw()));
         assertEquals("VERIFIED", asset.status());
+        assertEquals("1~10 ETH", asset.quantityBand());
+        assertEquals(2, asset.walletCount());
     }
 }

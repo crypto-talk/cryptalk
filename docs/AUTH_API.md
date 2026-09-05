@@ -221,6 +221,35 @@ curl -i -b cookies.txt -c cookies.txt \
 로그인한 사용자의 선택적 지갑 연결은 별도의 보호된 `/api/v1/me/wallet/**` API를
 사용합니다.
 
+## EVM 지갑 연결 및 관리
+
+MVP는 `0x`로 시작하는 EVM 지갑과 `personal_sign` 서명만 지원합니다. 지갑은 로그인 수단이
+아니며 아이디 로그인 후 선택적으로 여러 개 연결할 수 있습니다. 한 주소는 한 회원에게만 연결됩니다.
+
+| 기능 | Method | Path | 인증 |
+|---|---|---|---|
+| 연결 nonce 발급 | POST | `/api/v1/me/wallet/nonce` | 필요 |
+| 서명 검증 및 연결 | POST | `/api/v1/me/wallet` | 필요 |
+| 내 EVM 지갑 목록 | GET | `/api/v1/me/wallets` | 필요 |
+| 지갑 연결 해제 | DELETE | `/api/v1/me/wallets/{walletId}` | 필요, 소유자 |
+
+nonce 요청과 연결 요청은 기존 `NonceRequest`, `WalletLoginRequest` 형식을 사용합니다. nonce는
+5분 동안 한 번만 사용할 수 있고 로그인 회원, `LINK` 목적, 주소에 묶입니다.
+
+```json
+[
+  {
+    "id": 12,
+    "chainType": "EVM",
+    "address": "0x1111111111111111111111111111111111111111",
+    "connectedAt": "2026-09-05T10:00:00Z"
+  }
+]
+```
+
+목록의 전체 주소는 본인에게만 반환합니다. 연결과 해제 이벤트는 별도 이력으로 남고, 지갑을
+해제해도 과거 글과 댓글의 발행 당시 보유 스냅샷은 변경되지 않습니다.
+
 ## Swagger/OpenAPI
 
 - Swagger UI: `{API_BASE_URL}/swagger-ui.html`

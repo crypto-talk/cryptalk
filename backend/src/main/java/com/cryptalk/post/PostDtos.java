@@ -35,16 +35,20 @@ public final class PostDtos {
         @Size(max=500) String youtubeUrl
     ) {}
     public record MediaRequest(PostMedia.MediaType type, @NotBlank @Size(max=1000) String url, @Size(max=1000) String thumbnailUrl) {}
-    public record AuthorResponse(Long id, String nickname, String avatarColor, String walletAddress) {}
+    public record AuthorResponse(Long id, String nickname, String avatarColor) {}
     public record MediaResponse(Long id, String type, String url, String thumbnailUrl, int order) {}
     public record TradingViewResponse(String symbol, String interval, String analysis) {}
     public record PriceSnapshotResponse(BigDecimal price, String currency, Instant capturedAt, String source) {}
+    public record HolderSnapshotResponse(String verificationAvailability, String verificationLevel,
+                                         boolean verifiedHolder, String quantityBand, Integer holdingMonths,
+                                         int walletCount, Instant capturedAt, Long blockNumber, String syncStatus) {}
     public record YoutubeResponse(String url, String videoId, String thumbnailUrl) {}
     public record PostResponse(Long id, String coinSymbol, String title, String content, AuthorResponse author,
                                boolean verifiedHolder, BigDecimal assetValueKrw, String assetDisplay,
                                long likes, long comments, boolean liked, Instant createdAt, Instant updatedAt,
                                List<MediaResponse> media, TradingViewResponse tradingView, PriceSnapshotResponse priceSnapshot,
-                               YoutubeResponse youtube, long reposts, boolean reposted, boolean bookmarked) {}
+                               YoutubeResponse youtube, long reposts, boolean reposted, boolean bookmarked,
+                               HolderSnapshotResponse holderSnapshot) {}
     public record FeedItemResponse(String eventType, Instant occurredAt, AuthorResponse actor, PostResponse post) {}
     public record FeedPageResponse(List<FeedItemResponse> items, String nextCursor, boolean hasMore) {}
 }

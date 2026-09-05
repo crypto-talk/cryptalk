@@ -2,6 +2,7 @@ package com.cryptalk.asset;
 
 import com.cryptalk.coin.Coin;
 import com.cryptalk.coin.CoinRepository;
+import com.cryptalk.coin.VerificationAvailability;
 import com.cryptalk.common.ApiException;
 import com.cryptalk.market.MarketPriceService;
 import com.cryptalk.member.Member;
@@ -31,28 +32,57 @@ public class AssetService {
     @Transactional
     public List<AssetResponse> refreshAndList(Long memberId) {
         Member member = members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
-        var wallet = wallets.findFirstByMemberId(memberId);
-        if (wallet.isEmpty()) return List.of();
-        String address = wallet.get().getAddress();
+        var connectedWallets = wallets.findByMemberIdOrderByCreatedAtAsc(memberId);
+        if (connectedWallets.isEmpty()) return List.of();
         Coin eth = coins.findBySymbolIgnoreCaseAndActiveTrue("ETH").orElseThrow();
-        EthereumBalanceClient.BalanceResult balance = ethereum.balanceOf(address);
+        BigDecimal quantity = BigDecimal.ZERO;
+        for (var wallet : connectedWallets) {
+            EthereumBalanceClient.BalanceResult balance = ethereum.balanceOf(wallet.getAddress());
+            if (!"VERIFIED".equals(balance.status()))
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "EVM 지갑 잔액을 모두 확인하지 못했습니다.");
+            quantity = quantity.add(balance.quantity());
+        }
         AssetSnapshot snapshot = snapshots.findByMemberIdAndCoinId(memberId, eth.getId()).orElseGet(() -> new AssetSnapshot(member, eth));
-        BigDecimal value = balance.quantity().signum() == 0 ? BigDecimal.ZERO
-            : balance.quantity().multiply(marketPrices.currentPrice(eth, "KRW").price());
-        snapshot.capture(balance.quantity(), value, "VERIFIED".equals(balance.status()) && balance.quantity().signum() > 0, balance.status());
+        BigDecimal value = quantity.signum() == 0 ? BigDecimal.ZERO
+            : quantity.multiply(marketPrices.currentPrice(eth, "KRW").price());
+        snapshot.capture(quantity, value, quantity.signum() > 0, "VERIFIED", connectedWallets.size());
         snapshots.save(snapshot);
         return snapshots.findByMemberIdOrderByCoinDisplayOrder(memberId).stream().map(this::response).toList();
     }
 
-    @Transactional(readOnly = true)
-    public AssetSnapshot snapshotForPost(Long memberId, Long coinId) {
-        return snapshots.findByMemberIdAndCoinId(memberId, coinId).orElse(null);
+    @Transactional
+    public AssetPortfolioResponse refreshPortfolio(Long memberId) {
+        List<AssetResponse> values = refreshAndList(memberId);
+        return new AssetPortfolioResponse(wallets.findByMemberIdOrderByCreatedAtAsc(memberId).size(), values);
+    }
+
+    @Transactional
+    public AssetSnapshot snapshotForPublication(Long memberId, Coin coin) {
+        if (coin.getVerificationAvailability() != VerificationAvailability.SUPPORTED) return null;
+        refreshAndList(memberId);
+        return snapshots.findByMemberIdAndCoinId(memberId, coin.getId()).orElse(null);
     }
 
     private AssetResponse response(AssetSnapshot snapshot) {
         return new AssetResponse(snapshot.getCoin().getSymbol(), snapshot.getQuantity(), snapshot.getValueKrw(),
-            snapshot.isVerified(), snapshot.getVerificationStatus(), snapshot.getCapturedAt());
+            quantityBand(snapshot.getCoin().getSymbol(), snapshot.getQuantity()), snapshot.isVerified(),
+            snapshot.isVerified() ? "WALLET" : "UNVERIFIED", snapshot.getVerificationStatus(),
+            snapshot.getWalletCount(), snapshot.getHoldingSince(), null, snapshot.getCapturedAt(),
+            snapshot.getBlockNumber(), snapshot.getSyncStatus());
     }
 
-    public record AssetResponse(String symbol, BigDecimal quantity, BigDecimal valueKrw, boolean verified, String status, java.time.Instant capturedAt) {}
+    private String quantityBand(String symbol, BigDecimal quantity) {
+        if (quantity == null || quantity.signum() == 0) return null;
+        if (quantity.compareTo(new BigDecimal("0.1")) < 0) return "0~0.1 " + symbol;
+        if (quantity.compareTo(BigDecimal.ONE) < 0) return "0.1~1 " + symbol;
+        if (quantity.compareTo(BigDecimal.TEN) < 0) return "1~10 " + symbol;
+        if (quantity.compareTo(new BigDecimal("100")) < 0) return "10~100 " + symbol;
+        return "100+ " + symbol;
+    }
+
+    public record AssetPortfolioResponse(int walletCount, List<AssetResponse> assets) {}
+    public record AssetResponse(String symbol, BigDecimal quantity, BigDecimal valueKrw, String quantityBand,
+                                boolean verified, String verificationLevel, String status, int walletCount,
+                                java.time.Instant holdingSince, Integer holdingMonths, java.time.Instant capturedAt,
+                                Long blockNumber, String syncStatus) {}
 }

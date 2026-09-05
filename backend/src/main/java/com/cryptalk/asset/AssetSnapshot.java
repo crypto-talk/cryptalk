@@ -25,11 +25,20 @@ public class AssetSnapshot {
     private String verificationStatus;
     @Column(name = "captured_at", nullable = false)
     private Instant capturedAt;
+    @Column(name = "wallet_count", nullable = false)
+    private int walletCount;
+    @Column(name = "holding_since")
+    private Instant holdingSince;
+    @Column(name = "block_number")
+    private Long blockNumber;
+    @Column(name = "sync_status", nullable = false, length = 20)
+    private String syncStatus;
 
     protected AssetSnapshot() {}
     public AssetSnapshot(Member member, Coin coin) { this.member = member; this.coin = coin; }
-    public void capture(BigDecimal quantity, BigDecimal valueKrw, boolean verified, String status) {
-        this.quantity = quantity; this.valueKrw = valueKrw; this.verified = verified; this.verificationStatus = status; this.capturedAt = Instant.now();
+    public void capture(BigDecimal quantity, BigDecimal valueKrw, boolean verified, String status, int walletCount) {
+        this.quantity = quantity; this.valueKrw = valueKrw; this.verified = verified; this.verificationStatus = status;
+        this.walletCount = walletCount; this.syncStatus = "READY"; this.capturedAt = Instant.now();
     }
     public Coin getCoin() { return coin; }
     public BigDecimal getQuantity() { return quantity; }
@@ -37,4 +46,8 @@ public class AssetSnapshot {
     public boolean isVerified() { return verified; }
     public String getVerificationStatus() { return verificationStatus; }
     public Instant getCapturedAt() { return capturedAt; }
+    public int getWalletCount() { return walletCount; }
+    public Instant getHoldingSince() { return holdingSince; }
+    public Long getBlockNumber() { return blockNumber; }
+    public String getSyncStatus() { return syncStatus; }
 }

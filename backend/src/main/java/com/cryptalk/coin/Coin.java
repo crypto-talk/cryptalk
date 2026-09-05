@@ -21,6 +21,15 @@ public class Coin {
     private int displayOrder;
     @Column(name = "market_price_id", length = 100)
     private String marketPriceId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "verification_availability", nullable = false, length = 20)
+    private VerificationAvailability verificationAvailability;
+    @Column(name = "chain_id")
+    private Long chainId;
+    @Column(name = "asset_type", length = 20)
+    private String assetType;
+    @Column(name = "token_decimals")
+    private Integer tokenDecimals;
     @Column(nullable = false)
     private boolean active;
     protected Coin() {}
@@ -30,4 +39,8 @@ public class Coin {
     public String getChainType() { return chainType; }
     public String getAccentColor() { return accentColor; }
     public String getMarketPriceId() { return marketPriceId; }
+    public VerificationAvailability getVerificationAvailability() { return verificationAvailability; }
+    public Long getChainId() { return chainId; }
+    public String getAssetType() { return assetType; }
+    public Integer getTokenDecimals() { return tokenDecimals; }
 }
