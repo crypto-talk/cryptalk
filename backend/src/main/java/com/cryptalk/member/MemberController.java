@@ -24,7 +24,7 @@ public class MemberController {
     @Operation(summary = "내 프로필 수정", description = "닉네임과 아바타 색상을 변경합니다.")
     @PatchMapping MemberResponse update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateMemberRequest request) { return members.update(id(jwt), request.nickname(), request.avatarColor()); }
     @Operation(summary = "내 자산 조회 및 갱신", description = "연결된 지갑의 블록체인 잔액과 현재 KRW 시세를 조회해 자산 스냅샷을 갱신합니다.")
-    @GetMapping("/assets") List<AssetService.AssetResponse> assets(@AuthenticationPrincipal Jwt jwt) { return assets.refreshAndList(id(jwt)); }
+    @GetMapping("/assets") AssetService.AssetPortfolioResponse assets(@AuthenticationPrincipal Jwt jwt) { return assets.refreshPortfolio(id(jwt)); }
     @Operation(summary = "자산 공개 범위 변경")
     @PatchMapping("/asset-visibility") MemberResponse visibility(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody VisibilityRequest request) { return members.visibility(id(jwt), request.visibility()); }
     private Long id(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }
