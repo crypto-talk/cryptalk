@@ -18,8 +18,10 @@ trustPolicy: no-downgrade
 
 # 아래 셋은 next / eslint-config-next / @types/node 가 고정한 하위 의존성이고,
 # npm의 서명 체계보다 먼저 배포된 버전이라 정책에 걸린다. 직접 선택한 패키지가 아니다.
-# 상위 패키지가 올라가면 이 목록을 다시 확인할 것.
+#
+# 패키지 이름이 아니라 걸린 버전까지 지정한다. 이렇게 두면 예외가 이 버전 하나로 좁혀지고,
+# 상위 패키지가 올라가 다른 버전을 물고 오면 설치가 다시 실패해서 검토를 강제한다.
 trustPolicyExclude:
-  - eslint-import-resolver-typescript
-  - semver
-  - undici-types
+  - eslint-import-resolver-typescript@3.10.1
+  - semver@6.3.1
+  - undici-types@6.21.0
