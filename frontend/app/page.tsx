@@ -75,7 +75,7 @@ export default function Home() {
       setActiveCoin(loaded.find((coin) => coin.symbol === "ETH") ?? loaded[0]);
       refreshPrices();
     }).catch(() => setError("백엔드 서버에 연결할 수 없습니다."));
-    refreshSession().then((profile) => { setMember(profile); if (profile) api.assets().then(setAssets).catch(() => undefined); });
+    refreshSession().then((profile) => { setMember(profile); if (profile) api.assets().then((portfolio) => setAssets(portfolio.assets)).catch(() => undefined); });
     const interval = window.setInterval(refreshPrices, 30_000);
     return () => { cancelled = true; window.clearInterval(interval); };
   }, []);
@@ -93,7 +93,7 @@ export default function Home() {
     setError("");
     try {
       const profile = await linkInjectedWallet();
-      setMember(profile); setWalletOpen(false); setAssets(await api.assets());
+      setMember(profile); setWalletOpen(false); setAssets((await api.assets()).assets);
     }
     catch (reason) { setError(reason instanceof Error ? reason.message : "지갑 연결에 실패했습니다."); }
   };
