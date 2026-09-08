@@ -5,6 +5,8 @@ Read the repository `AGENTS.md` first. This file adds the rules that apply under
 ## Stack
 
 - Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS 4.
+- pnpm is the package manager, pinned by `packageManager` in `package.json`. Never run
+  `npm install` here; it would create a competing `package-lock.json`.
 - Deployed on Vercel. `next build` is the build; there is no Cloudflare Worker runtime.
 - The API client talks to the Spring Boot backend at `NEXT_PUBLIC_API_URL`. There is no
   database, ORM or server-side data layer in this project.
@@ -47,11 +49,11 @@ onto a single line to save space.
 
 Run from `frontend/`, in order:
 
-1. `npx tsc --noEmit`
-2. `npm run lint`
-3. `npm run build`
-4. `npm test`
+1. `pnpm exec tsc --noEmit`
+2. `pnpm run lint`
+3. `pnpm run build`
+4. `pnpm test`
 
-`next/font/google` fetches from Google Fonts at build time, so `npm run build` and `npm test`
+`next/font/google` fetches from Google Fonts at build time, so `pnpm run build` and `pnpm test`
 need network access to `fonts.googleapis.com`. In a sandbox without it, say so rather than
 reporting the build as passing.

@@ -19,4 +19,4 @@ gradlew text eol=lf
 *.pdf binary
 
 # 자동 생성 파일은 GitHub PR에서 접어 둔다. 로컬 diff는 그대로 볼 수 있다.
-package-lock.json linguist-generated
+pnpm-lock.yaml linguist-generated
