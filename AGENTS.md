@@ -36,3 +36,4 @@
 - A push to `develop` that touches backend deployment paths builds, tests, deploys, and health-checks production.
 
 Read `backend/AGENTS.md` before changing anything under `backend/`.
+Read `frontend/AGENTS.md` before changing anything under `frontend/`.
