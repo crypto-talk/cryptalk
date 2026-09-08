@@ -1,18 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
-async function render() {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-  return worker.fetch(new Request("http://localhost/", { headers: { accept: "text/html" } }), {
-    ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
-  }, { waitUntil() {}, passThroughOnException() {} });
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const port = 3100 + (process.pid % 400);
+const origin = `http://127.0.0.1:${port}`;
+
+async function waitForServer(timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(origin, { headers: { accept: "text/html" } });
+      if (response.status < 500) return;
+    } catch {
+      // Server is not accepting connections yet.
+    }
+    await new Promise((done) => setTimeout(done, 500));
+  }
+  throw new Error(`next start did not become ready on ${origin}`);
 }
 
-test("server-renders the CrypTalk application", async () => {
-  const response = await render();
+test("server-renders the CrypTalk application", async (t) => {
+  const server = spawn(
+    process.platform === "win32" ? "npx.cmd" : "npx",
+    ["next", "start", "--port", String(port)],
+    { cwd: projectRoot, stdio: "ignore", env: { ...process.env, PORT: String(port) } },
+  );
+  t.after(() => server.kill("SIGTERM"));
+
+  await waitForServer();
+
+  const response = await fetch(origin, { headers: { accept: "text/html" } });
   assert.equal(response.status, 200);
+
   const html = await response.text();
   assert.match(html, /CRYPTALK/);
   assert.match(html, /Ethereum/);
