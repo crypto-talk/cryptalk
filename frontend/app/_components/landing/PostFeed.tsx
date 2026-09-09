@@ -1,0 +1,90 @@
+"use client";
+
+import { useState } from "react";
+import type { FeedPost } from "../../../lib/mock/landing";
+import Badge from "./Badge";
+
+type Props = {
+  posts: FeedPost[];
+};
+
+const stats = (post: FeedPost) =>
+  `댓글 ${post.comments} · 조회 ${post.views.toLocaleString("en-US")}`;
+
+export default function PostFeed({ posts }: Props) {
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const visible = verifiedOnly ? posts.filter((post) => post.tier !== "none") : posts;
+
+  return (
+    <section className="hd-feed">
+      <div className="hd-section-head">
+        <h2 className="hd-t-h2">전체 글</h2>
+        <span className="hd-info" title="최신순으로 정렬합니다">
+          i
+        </span>
+      </div>
+
+      <div className="hd-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!verifiedOnly}
+          className={`hd-tab${verifiedOnly ? "" : " hd-tab-on"}`}
+          onClick={() => setVerifiedOnly(false)}
+        >
+          전체
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={verifiedOnly}
+          className={`hd-tab${verifiedOnly ? " hd-tab-on" : ""}`}
+          onClick={() => setVerifiedOnly(true)}
+        >
+          인증
+        </button>
+      </div>
+
+      <div className="hd-post-list">
+        {visible.map((post) => (
+          <article key={post.id} className="hd-post">
+            <div className="hd-post-head">
+              <span className="hd-chip">{post.symbol}</span>
+              <Badge tier={post.tier} />
+              {post.range ? <span className="hd-range">{post.range}</span> : null}
+              <span style={{ flex: 1 }} />
+              <span className="hd-t-xs hd-muted">{post.time}</span>
+            </div>
+
+            <a href="#" className="hd-post-title">
+              {post.title}
+            </a>
+            <p className="hd-t-body hd-muted" style={{ marginTop: 8 }}>
+              {post.preview}
+            </p>
+
+            <div className="hd-post-foot">
+              <a href="#" className="hd-t-sm hd-strong">
+                {post.nick}
+              </a>
+              {/* holdingMonths가 아직 null이라 이 줄은 전부 목값입니다. */}
+              <span
+                className="hd-t-sm"
+                style={{ color: post.tier === "wallet" ? "var(--hd-ink)" : "var(--hd-sub)" }}
+              >
+                {post.hold || "보유 기록 없음"}
+              </span>
+              <span style={{ flex: 1 }} />
+              <span className="hd-t-xs hd-muted hd-num">{stats(post)}</span>
+            </div>
+          </article>
+        ))}
+        {visible.length === 0 ? <div className="hd-empty">아직 인증된 글이 없습니다.</div> : null}
+      </div>
+
+      <button type="button" className="hd-btn hd-btn-block" style={{ marginTop: 16, padding: 16 }}>
+        더 보기
+      </button>
+    </section>
+  );
+}
