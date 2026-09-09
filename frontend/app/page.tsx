@@ -44,7 +44,9 @@ export default function Landing() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    refreshSession().then(setMember).catch(() => undefined);
+    refreshSession()
+      .then(setMember)
+      .catch(() => undefined);
 
     // 방 목록만 실제 API로 채웁니다. 등락률은 응답에 없어 목값을 씁니다.
     api

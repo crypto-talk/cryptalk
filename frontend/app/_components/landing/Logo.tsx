@@ -26,14 +26,8 @@ export default function Logo({ size, background, foreground }: Props) {
       aria-hidden="true"
     >
       <div className="hd-logo-eyes" style={{ gap }}>
-        <div
-          className="hd-logo-eye"
-          style={{ width: eye, height: eye, background: foreground }}
-        />
-        <div
-          className="hd-logo-eye"
-          style={{ width: eye, height: eye, background: foreground }}
-        />
+        <div className="hd-logo-eye" style={{ width: eye, height: eye, background: foreground }} />
+        <div className="hd-logo-eye" style={{ width: eye, height: eye, background: foreground }} />
       </div>
       <div
         className="hd-logo-mouth"

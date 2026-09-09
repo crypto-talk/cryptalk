@@ -41,14 +41,14 @@ export default function AuthDialog({ mode, onModeChange, onClose, onAuthenticate
     setError("");
     setPending(true);
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "");
+    const loginId = String(form.get("loginId") ?? "");
     const password = String(form.get("password") ?? "");
 
     try {
       const member =
         mode === "signup"
-          ? await api.signup(email, password, String(form.get("nickname") ?? ""))
-          : await api.emailLogin(email, password);
+          ? await api.signup(loginId, password, String(form.get("nickname") ?? ""))
+          : await api.login(loginId, password);
       onAuthenticated(member);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "인증에 실패했습니다.");
@@ -86,14 +86,15 @@ export default function AuthDialog({ mode, onModeChange, onClose, onAuthenticate
               required
             />
           ) : null}
+          {/* 백엔드 계약이 email → loginId 로 바뀌었습니다. type도 text입니다. */}
           <input
             ref={mode === "login" ? firstFieldRef : undefined}
             className="hd-field"
-            name="email"
-            type="email"
-            aria-label="이메일"
-            placeholder="이메일"
-            autoComplete="email"
+            name="loginId"
+            type="text"
+            aria-label="아이디"
+            placeholder="아이디"
+            autoComplete="username"
             required
           />
           <input

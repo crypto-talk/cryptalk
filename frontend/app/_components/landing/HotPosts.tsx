@@ -53,10 +53,7 @@ export default function HotPosts({ posts }: Props) {
             </span>
             <span className="hd-chip">{post.symbol}</span>
             <Badge tier={post.tier} />
-            <span
-              className="hd-t-body hd-ellipsis"
-              style={{ flex: "1 1 240px", minWidth: 0 }}
-            >
+            <span className="hd-t-body hd-ellipsis" style={{ flex: "1 1 240px", minWidth: 0 }}>
               {post.title}
             </span>
             <span className="hd-t-xs hd-muted hd-num">{post.meta}</span>
