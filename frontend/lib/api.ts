@@ -3,7 +3,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 export type ApiCoin = { id: number; symbol: string; name: string; chainType: string; accentColor: string };
 export type MarketPrice = { symbol: string; price: number; currency: string; change24h: number | null; capturedAt: string; source: string };
 export type Member = { id: number; nickname: string; avatarColor: string; walletAddress: string | null; assetVisibility: string };
-export type Asset = { symbol: string; quantity: number; valueKrw: number; verified: boolean; status: string; capturedAt: string };
+export type Asset = {
+  symbol: string; quantity: number; valueKrw: number; quantityBand: string | null;
+  verified: boolean; verificationLevel: string; status: string; walletCount: number;
+  holdingSince: string | null; holdingMonths: number | null; capturedAt: string;
+  blockNumber: number | null; syncStatus: string;
+};
+export type AssetPortfolio = { walletCount: number; assets: Asset[] };
 export type ApiPost = {
   id: number; coinSymbol: string; title: string; content: string;
   author: { id: number; nickname: string; avatarColor: string; walletAddress: string | null };
@@ -74,7 +80,7 @@ export const api = {
   marketPrices: (currency = "KRW") => request<MarketPrice[]>(`/api/v1/market/prices?currency=${encodeURIComponent(currency)}`),
   marketPrice: (symbol: string, currency = "KRW") => request<MarketPrice>(`/api/v1/market/prices/${encodeURIComponent(symbol)}?currency=${encodeURIComponent(currency)}`),
   posts: (symbol: string) => request<ApiPost[]>(`/api/v1/communities/${symbol}/posts`),
-  assets: () => request<Asset[]>("/api/v1/me/assets"),
+  assets: () => request<AssetPortfolio>("/api/v1/me/assets"),
   createPost: (coinSymbol: string, title: string, content: string) => request<ApiPost>("/api/v1/posts", { method: "POST", body: JSON.stringify({ coinSymbol, title, content }) }),
   like: (postId: number, liked: boolean) => request<ApiPost>(`/api/v1/posts/${postId}/likes`, { method: liked ? "DELETE" : "POST" }),
   logout: async () => { await request<void>("/api/v1/auth/logout", { method: "POST" }, false); setToken(null); },

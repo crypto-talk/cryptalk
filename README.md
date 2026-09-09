@@ -6,7 +6,7 @@
 
 ```text
 cryptalk/
-├── frontend/   # Vinext/React 웹 애플리케이션
+├── frontend/   # Next.js/React 웹 애플리케이션
 ├── backend/    # Java 24 + Spring Boot API
 └── docker-compose.yml
 ```
