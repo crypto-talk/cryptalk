@@ -359,7 +359,8 @@ API client는 `frontend/lib/api.ts`에 있다.
 - 프로필·자산 공개 설정 변경 UI 없음
 - 이미지 첨부, 태그 선택, 공유 기능 없음
 - WalletConnect SDK는 없음. MetaMask/Coinbase 등 `window.ethereum`을 주입하는 EVM 지갑만 사용
-- DB가 비어 있으면 피드는 빈 상태로 표시되며 데모 게시글 seed는 없음
+- 기본 DB가 비어 있으면 피드는 빈 상태로 표시된다. 로컬 데모가 필요하면 backend 실행 시
+  `SPRING_LIQUIBASE_CONTEXTS=mock`을 지정해 선택형 게시글·댓글·홀더 스냅샷 seed를 적용한다.
 
 프론트에서 제거한 항목:
 
@@ -497,7 +498,8 @@ npm test
 - access token은 `sessionStorage`에 보관한다. XSS 방어를 포함해 인증 저장 전략을 운영 전 재검토한다.
 - refresh token cookie path가 `/api/v1/auth`로 제한되어 있다.
 - 프론트와 백엔드가 다른 site에 배포되면 cookie, CORS, HTTPS 구성을 함께 검증해야 한다.
-- 빈 DB의 게시글 seed가 없으므로 첫 화면 피드가 비어 있는 것이 정상이다.
+- 기본 실행에서는 게시글 seed를 적용하지 않으므로 첫 화면 피드가 비어 있는 것이 정상이다.
+  로컬 데모용 `mock` Liquibase context는 명시적으로 활성화해야 한다.
 - `npm install` 기준 dependency audit 경고가 발생할 수 있다. 강제 major upgrade 전에 Vinext/Next 호환성을 확인한다.
 
 ## 17. 권장 다음 작업 순서

@@ -13,3 +13,7 @@ databaseChangeLog:
       file: db/changelog/007-expand-coin-catalog.sql
   - include:
       file: db/changelog/008-evm-holder-foundation.sql
+  - include:
+      file: db/changelog/009-mock-community-data.sql
+  - include:
+      file: db/changelog/010-expanded-mock-community-data.sql

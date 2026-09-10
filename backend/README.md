@@ -23,6 +23,19 @@ CRYPTALK_TEST_PAGES_ENABLED=true ./gradlew bootRun
 지원합니다. 페이지 내 이동은 새로고침 없이 처리되어 access token을 브라우저 메모리에만
 보관합니다. 테스트 페이지는 기본적으로 비활성화되며 운영 환경에서는 활성화하지 마세요.
 
+## 로컬 데모 데이터
+
+피드와 홀더 인증 응답을 바로 확인할 데모 시드가 필요하면 새 로컬 DB에서 `mock`
+Liquibase context를 활성화합니다. 시드는 인증정보가 없는 데모 회원과 전체 20개 코인의
+게시글 30개, 댓글, 좋아요, 재게시 및 발행 당시 홀더 스냅샷을 추가합니다.
+
+```bash
+SPRING_LIQUIBASE_CONTEXTS=mock ./gradlew bootRun
+```
+
+이미 기본 migration을 적용한 DB에서는 `mock` context로 다시 실행하면 아직 실행되지 않은
+데모 changeset만 추가됩니다. context를 지정하지 않은 기본 실행과 운영 배포에는 추가되지 않습니다.
+
 기본 설정은 로컬 개발용입니다. 운영 환경에서는 `DB_*`, `JWT_SECRET`,
 `ETHEREUM_RPC_URL`, `CORS_ALLOWED_ORIGINS`를 반드시 설정하세요. 코인 가격은 기본적으로
 CoinGecko 공개 API에서 조회하며 필요하면 `MARKET_PRICE_BASE_URL`로 호스트를 교체할 수 있습니다.
