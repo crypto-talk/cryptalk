@@ -17,9 +17,10 @@ Java 24와 Spring Boot 3.5.16으로 구현한 CrypTalk API입니다.
 CRYPTALK_TEST_PAGES_ENABLED=true ./gradlew bootRun
 ```
 
-실행 후 http://localhost:8080/test/api 에 접속합니다. 페이지는 백엔드와 같은 origin에서
-동작하며 회원가입·로그인, JSON 및 multipart 요청, MetaMask `personal_sign`, 연결 지갑과
-자산 조회를 지원합니다. 개인키를 입력받지 않고 access token도 브라우저 메모리에만
+실행 후 http://localhost:8080/test 에 접속합니다. 허브에서 `/test/auth`, `/test/wallet`,
+`/test/api` 하위 페이지로 이동할 수 있습니다. 페이지는 백엔드와 같은 origin에서 동작하며
+회원가입·로그인, JSON 및 multipart 요청, MetaMask `personal_sign`, 연결 지갑과 자산 조회를
+지원합니다. 페이지 내 이동은 새로고침 없이 처리되어 access token을 브라우저 메모리에만
 보관합니다. 테스트 페이지는 기본적으로 비활성화되며 운영 환경에서는 활성화하지 마세요.
 
 기본 설정은 로컬 개발용입니다. 운영 환경에서는 `DB_*`, `JWT_SECRET`,

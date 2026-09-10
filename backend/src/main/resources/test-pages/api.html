@@ -27,12 +27,22 @@
     h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); letter-spacing: -.04em; }
     h2, h3 { margin: 0; }
     .subtitle { margin: 7px 0 0; color: var(--muted); }
+    .header-actions { display: grid; justify-items: end; gap: 10px; }
+    nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    nav a { color: var(--muted); text-decoration: none; border: 1px solid transparent; border-radius: 9px; padding: 6px 10px; }
+    nav a:hover, nav a.active { color: var(--text); border-color: var(--line); background: #14243a; }
     .pill { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; color: var(--muted); background: #0c1728; white-space: nowrap; }
     .pill.ok { color: var(--green); border-color: #176e59; }
     main { max-width: 1500px; margin: auto; padding: 0 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; }
     .workspace { min-width: 0; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid.single { grid-template-columns: 1fr; }
     .card { background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 18px 50px #02061755; }
+    .hub-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .hub-link { display: block; color: var(--text); text-decoration: none; border: 1px solid var(--line); background: #0b182a; border-radius: 14px; padding: 18px; }
+    .hub-link:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .hub-link strong { display: block; font-size: 18px; margin-bottom: 7px; }
+    .hub-link span { color: var(--muted); }
     .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 16px; }
     .card-head p { margin: 4px 0 0; color: var(--muted); }
     .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -82,7 +92,7 @@
     .notice { color: var(--amber); font-size: 12px; margin-top: 10px; }
     .hidden { display: none !important; }
     @media (max-width: 1050px) { main { grid-template-columns: 1fr; } aside { position: static; height: 520px; } }
-    @media (max-width: 720px) { header { align-items: start; flex-direction: column; } .grid, .fields, .param-grid { grid-template-columns: 1fr; } summary { grid-template-columns: 64px 1fr; } .summary-text { grid-column: 1 / -1; text-align: left; } }
+    @media (max-width: 720px) { header { align-items: start; flex-direction: column; } .header-actions { justify-items: start; } nav { justify-content: flex-start; } .grid, .hub-grid, .fields, .param-grid { grid-template-columns: 1fr; } summary { grid-template-columns: 64px 1fr; } .summary-text { grid-column: 1 / -1; text-align: left; } }
   </style>
 </head>
 <body>
@@ -91,13 +101,32 @@
       <h1>CrypTalk API Test Console</h1>
       <p class="subtitle">현재 OpenAPI 계약 전체와 EVM 지갑 연결을 같은 origin에서 테스트합니다.</p>
     </div>
-    <span id="session-pill" class="pill">로그인 안 됨</span>
+    <div class="header-actions">
+      <nav aria-label="테스트 페이지">
+        <a href="/test" data-route="/test">허브</a>
+        <a href="/test/auth" data-route="/test/auth">인증</a>
+        <a href="/test/wallet" data-route="/test/wallet">지갑</a>
+        <a href="/test/api" data-route="/test/api">전체 API</a>
+      </nav>
+      <span id="session-pill" class="pill">로그인 안 됨</span>
+    </div>
   </header>
 
   <main>
     <section class="workspace">
+      <section class="card" data-page-section="hub">
+        <div class="card-head">
+          <div><h2>테스트 선택</h2><p>필요한 기능으로 이동하세요. 상단 메뉴를 사용하면 로그인 세션이 유지됩니다.</p></div>
+        </div>
+        <div class="hub-grid">
+          <a class="hub-link" href="/test/auth" data-route="/test/auth"><strong>인증 테스트</strong><span>회원가입, 로그인, refresh, 로그아웃</span></a>
+          <a class="hub-link" href="/test/wallet" data-route="/test/wallet"><strong>EVM 지갑 테스트</strong><span>MetaMask 서명, 연결, 목록, 해제, ETH 자산</span></a>
+          <a class="hub-link" href="/test/api" data-route="/test/api"><strong>전체 API Explorer</strong><span>OpenAPI 기반 전체 엔드포인트 직접 실행</span></a>
+        </div>
+      </section>
+
       <div class="grid">
-        <article class="card">
+        <article class="card" data-page-section="auth">
           <div class="card-head">
             <div><h2>인증 세션</h2><p>토큰은 이 탭의 메모리에만 저장됩니다.</p></div>
           </div>
@@ -115,7 +144,7 @@
           <div id="session-status" class="status-box">먼저 회원가입하거나 로그인하세요.</div>
         </article>
 
-        <article class="card">
+        <article class="card" data-page-section="wallet">
           <div class="card-head">
             <div><h2>EVM 지갑</h2><p>MetaMask 등 injected wallet의 personal_sign을 사용합니다.</p></div>
           </div>
@@ -130,7 +159,7 @@
         </article>
       </div>
 
-      <section class="card explorer">
+      <section class="card explorer" data-page-section="api">
         <div class="card-head">
           <div><h2>전체 API</h2><p>OpenAPI JSON에서 엔드포인트와 요청 필드를 자동 생성합니다.</p></div>
           <span id="operation-count" class="pill">불러오는 중</span>
@@ -231,6 +260,17 @@
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    }
+
+    function navigate(path, push = true) {
+      const routes = { "/test": "hub", "/test/": "hub", "/test/auth": "auth", "/test/wallet": "wallet", "/test/api": "api" };
+      const page = routes[path] || "hub";
+      $$('[data-page-section]').forEach(section => section.classList.toggle("hidden", section.dataset.pageSection !== page));
+      $(".grid").classList.toggle("hidden", page !== "auth" && page !== "wallet");
+      $(".grid").classList.toggle("single", page === "auth" || page === "wallet");
+      $$('[data-route]').forEach(link => link.classList.toggle("active", routes[link.dataset.route] === page));
+      if (push && location.pathname !== path) history.pushState({}, "", path);
+      document.title = `CrypTalk ${page === "hub" ? "API Test Console" : `${page.toUpperCase()} Test`}`;
     }
 
     async function authenticate(kind) {
@@ -491,6 +531,12 @@
     }
 
     document.addEventListener("click", event => {
+      const route = event.target.closest("[data-route]");
+      if (route) {
+        event.preventDefault();
+        navigate(route.dataset.route);
+        return;
+      }
       const button = event.target.closest("[data-action]");
       if (!button) return;
       const actions = {
@@ -507,6 +553,8 @@
       if (actions[button.dataset.action]) run(button, actions[button.dataset.action]);
     });
     $("#search").addEventListener("input", filterOperations);
+    window.addEventListener("popstate", () => navigate(location.pathname, false));
+    navigate(location.pathname, false);
     run(null, loadSpec);
   </script>
 </body>

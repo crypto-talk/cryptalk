@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @ConditionalOnProperty(prefix = "cryptalk.test-pages", name = "enabled", havingValue = "true")
 public class ApiTestPageController {
-    @GetMapping(value = "/test/api", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = {"/test", "/test/", "/test/auth", "/test/wallet", "/test/api"},
+                produces = MediaType.TEXT_HTML_VALUE)
     ResponseEntity<Resource> apiTestPage() {
         return ResponseEntity.ok()
             .contentType(MediaType.TEXT_HTML)

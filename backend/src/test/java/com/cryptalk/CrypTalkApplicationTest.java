@@ -77,7 +77,7 @@ class CrypTalkApplicationTest {
 
     @Test
     void doesNotExposeApiTestPageByDefault() throws Exception {
-        mvc.perform(get("/test/api"))
+        mvc.perform(get("/test"))
             .andExpect(status().isNotFound());
     }
 
