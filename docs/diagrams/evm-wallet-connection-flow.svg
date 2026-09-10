@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1720" viewBox="0 0 1800 1720" role="img" aria-labelledby="title desc">
+  <title id="title">CrypTalk EVM 지갑 연결 흐름</title>
+  <desc id="desc">사용자와 프론트엔드, EVM 지갑, Spring Boot 백엔드, MySQL 및 외부 공급자 사이의 지갑 연결과 ETH 자산 인증 흐름도</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#059669"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#dc2626"/>
+    </marker>
+    <style>
+      text { font-family: "Noto Sans CJK KR", sans-serif; fill: #172033; }
+      .title { font-size: 38px; font-weight: 700; }
+      .subtitle { font-size: 18px; fill: #536076; }
+      .laneTitle { font-size: 21px; font-weight: 700; }
+      .sectionTitle { font-size: 22px; font-weight: 700; fill: #ffffff; }
+      .boxTitle { font-size: 18px; font-weight: 700; }
+      .body { font-size: 15px; fill: #445168; }
+      .small { font-size: 13px; fill: #64748b; }
+      .step { font-size: 14px; font-weight: 700; fill: #ffffff; text-anchor: middle; dominant-baseline: middle; }
+      .edgeLabel { font-size: 14px; font-weight: 700; fill: #334155; }
+      .box { fill: #ffffff; stroke-width: 2; rx: 14; }
+      .clientBox { fill: #ffffff; stroke: #60a5fa; stroke-width: 2; }
+      .walletBox { fill: #ffffff; stroke: #a78bfa; stroke-width: 2; }
+      .serverBox { fill: #ffffff; stroke: #34d399; stroke-width: 2; }
+      .dataBox { fill: #ffffff; stroke: #f59e0b; stroke-width: 2; }
+      .errorBox { fill: #fff1f2; stroke: #fb7185; stroke-width: 2; rx: 12; }
+      .blueLine { fill: none; stroke: #2563eb; stroke-width: 3; marker-end: url(#arrowBlue); }
+      .purpleLine { fill: none; stroke: #7c3aed; stroke-width: 3; marker-end: url(#arrowPurple); }
+      .greenLine { fill: none; stroke: #059669; stroke-width: 3; marker-end: url(#arrowGreen); }
+      .redLine { fill: none; stroke: #dc2626; stroke-width: 3; marker-end: url(#arrowRed); }
+      .dashLine { stroke-dasharray: 8 7; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1720" fill="#f8fafc"/>
+  <text x="60" y="62" class="title">CrypTalk EVM 지갑 연결 및 자산 인증 흐름</text>
+  <text x="60" y="94" class="subtitle">현재 구현 기준: JWT 로그인 계정 + MetaMask personal_sign + Ethereum mainnet ETH 잔액</text>
+
+  <!-- Swimlanes -->
+  <rect x="45" y="125" width="390" height="1535" rx="22" fill="#eff6ff" stroke="#bfdbfe"/>
+  <rect x="455" y="125" width="300" height="1535" rx="22" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <rect x="775" y="125" width="540" height="1535" rx="22" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <rect x="1335" y="125" width="420" height="1535" rx="22" fill="#fffbeb" stroke="#fde68a"/>
+
+  <text x="240" y="166" class="laneTitle" text-anchor="middle">프론트엔드</text>
+  <text x="605" y="166" class="laneTitle" text-anchor="middle">EVM 지갑</text>
+  <text x="1045" y="166" class="laneTitle" text-anchor="middle">Spring Boot 백엔드</text>
+  <text x="1545" y="166" class="laneTitle" text-anchor="middle">DB 및 외부 공급자</text>
+
+  <!-- Section 1 -->
+  <rect x="65" y="190" width="1670" height="44" rx="12" fill="#334155"/>
+  <text x="900" y="220" class="sectionTitle" text-anchor="middle">1. 로그인 및 지갑 소유권 인증</text>
+
+  <rect class="clientBox" x="90" y="270" width="300" height="92" rx="14"/>
+  <circle cx="110" cy="285" r="15" fill="#2563eb"/><text x="110" y="286" class="step">1</text>
+  <text x="135" y="301" class="boxTitle">아이디 로그인</text>
+  <text x="135" y="329" class="body">POST /api/v1/auth/login</text>
+  <text x="135" y="351" class="small">accessToken을 프론트에 보관</text>
+
+  <rect class="serverBox" x="815" y="270" width="460" height="92" rx="14"/>
+  <text x="850" y="301" class="boxTitle">계정 인증 및 JWT 발급</text>
+  <text x="850" y="329" class="body">비밀번호 검증 후 15분 access JWT 발급</text>
+  <text x="850" y="351" class="small">refresh token은 HttpOnly cookie로 전달</text>
+  <path d="M390 316 H803" fill="none" stroke="#2563eb" stroke-width="3"/><polygon points="815,316 803,309 803,323" fill="#2563eb"/>
+  <text x="548" y="302" class="edgeLabel">loginId + password</text>
+
+  <rect class="clientBox" x="90" y="405" width="300" height="88" rx="14"/>
+  <circle cx="110" cy="420" r="15" fill="#2563eb"/><text x="110" y="421" class="step">2</text>
+  <text x="135" y="437" class="boxTitle">지갑 연결 선택</text>
+  <text x="135" y="466" class="body">eth_requestAccounts 호출</text>
+
+  <rect class="walletBox" x="495" y="405" width="220" height="88" rx="14"/>
+  <text x="525" y="437" class="boxTitle">계정 선택</text>
+  <text x="525" y="466" class="body">0x EVM 주소 반환</text>
+  <path d="M390 449 H483" fill="none" stroke="#7c3aed" stroke-width="3"/><polygon points="495,449 483,442 483,456" fill="#7c3aed"/>
+
+  <rect class="clientBox" x="90" y="545" width="300" height="108" rx="14"/>
+  <circle cx="110" cy="560" r="15" fill="#2563eb"/><text x="110" y="561" class="step">3</text>
+  <text x="135" y="577" class="boxTitle">nonce 요청</text>
+  <text x="135" y="606" class="body">POST /api/v1/me/wallet/nonce</text>
+  <text x="135" y="630" class="small">Bearer JWT + walletAddress</text>
+
+  <rect class="serverBox" x="815" y="535" width="460" height="128" rx="14"/>
+  <text x="850" y="568" class="boxTitle">연결 전용 nonce 생성</text>
+  <text x="850" y="597" class="body">회원 ID · 주소 · LINK 목적에 귀속</text>
+  <text x="850" y="621" class="body">5분 만료, 한 번만 사용 가능</text>
+  <text x="850" y="645" class="small">주소는 소문자로 정규화</text>
+  <path d="M390 599 H803" fill="none" stroke="#2563eb" stroke-width="3"/><polygon points="815,599 803,592 803,606" fill="#2563eb"/>
+  <text x="505" y="584" class="edgeLabel">JWT + walletAddress</text>
+
+  <rect class="dataBox" x="1375" y="545" width="340" height="108" rx="14"/>
+  <text x="1410" y="579" class="boxTitle">auth_nonces 저장</text>
+  <text x="1410" y="607" class="body">nonceId, message, expiry</text>
+  <text x="1410" y="631" class="small">purpose=LINK, member_id 포함</text>
+  <path d="M1275 599 H1363" fill="none" stroke="#059669" stroke-width="3"/><polygon points="1375,599 1363,592 1363,606" fill="#059669"/>
+
+  <rect class="clientBox" x="90" y="705" width="300" height="96" rx="14"/>
+  <circle cx="110" cy="720" r="15" fill="#2563eb"/><text x="110" y="721" class="step">4</text>
+  <text x="135" y="737" class="boxTitle">서명 메시지 수신</text>
+  <text x="135" y="765" class="body">nonceId + 사람이 읽는 message</text>
+  <text x="135" y="789" class="small">거래 요청이나 가스비 없음</text>
+  <path d="M815 753 H402" fill="none" stroke="#059669" stroke-width="3"/><polygon points="390,753 402,746 402,760" fill="#059669"/>
+  <text x="500" y="738" class="edgeLabel">nonceId + message</text>
+
+  <rect class="walletBox" x="495" y="835" width="220" height="104" rx="14"/>
+  <circle cx="515" cy="850" r="15" fill="#7c3aed"/><text x="515" y="851" class="step">5</text>
+  <text x="540" y="868" class="boxTitle">personal_sign</text>
+  <text x="540" y="897" class="body">사용자가 서명 승인</text>
+  <text x="540" y="921" class="small">개인키는 지갑 밖으로 안 나감</text>
+  <path d="M390 753 C445 753 445 887 483 887" fill="none" stroke="#7c3aed" stroke-width="3"/><polygon points="495,887 483,880 483,894" fill="#7c3aed"/>
+
+  <rect class="clientBox" x="90" y="975" width="300" height="112" rx="14"/>
+  <circle cx="110" cy="990" r="15" fill="#2563eb"/><text x="110" y="991" class="step">6</text>
+  <text x="135" y="1007" class="boxTitle">연결 요청</text>
+  <text x="135" y="1036" class="body">POST /api/v1/me/wallet</text>
+  <text x="135" y="1060" class="small">주소 + nonceId + signature + JWT</text>
+  <path d="M605 939 V958 H240 V963" fill="none" stroke="#7c3aed" stroke-width="3"/><polygon points="240,975 233,963 247,963" fill="#7c3aed"/>
+
+  <rect class="serverBox" x="815" y="955" width="460" height="152" rx="14"/>
+  <text x="850" y="988" class="boxTitle">nonce 및 서명 검증</text>
+  <text x="850" y="1017" class="body">JWT 회원 · LINK 목적 · 주소 일치</text>
+  <text x="850" y="1041" class="body">미사용 · 만료 전 여부 확인</text>
+  <text x="850" y="1065" class="body">서명자 주소를 복구하여 비교</text>
+  <text x="850" y="1089" class="small">검증 성공 시 nonce를 즉시 사용 처리</text>
+  <path d="M390 1031 H803" fill="none" stroke="#2563eb" stroke-width="3"/><polygon points="815,1031 803,1024 803,1038" fill="#2563eb"/>
+
+  <rect class="errorBox" x="1375" y="935" width="340" height="78"/>
+  <text x="1410" y="968" class="boxTitle" fill="#be123c">검증 실패</text>
+  <text x="1410" y="996" class="body">401 Unauthorized</text>
+  <path d="M1275 988 H1363" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="8 7"/><polygon points="1375,988 1363,981 1363,995" fill="#dc2626"/>
+
+  <rect class="errorBox" x="1375" y="1032" width="340" height="78"/>
+  <text x="1410" y="1065" class="boxTitle" fill="#be123c">다른 계정에 연결된 주소</text>
+  <text x="1410" y="1093" class="body">409 Conflict</text>
+  <path d="M1275 1068 H1363" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="8 7"/><polygon points="1375,1068 1363,1061 1363,1075" fill="#dc2626"/>
+
+  <rect class="dataBox" x="1375" y="1145" width="340" height="110" rx="14"/>
+  <circle cx="1395" cy="1160" r="15" fill="#d97706"/><text x="1395" y="1161" class="step">7</text>
+  <text x="1420" y="1177" class="boxTitle">연결 정보 저장</text>
+  <text x="1420" y="1205" class="body">wallets: EVM 주소</text>
+  <text x="1420" y="1229" class="body">wallet_connection_events: CONNECTED</text>
+  <path d="M1045 1107 V1200 H1363" fill="none" stroke="#059669" stroke-width="3"/><polygon points="1375,1200 1363,1193 1363,1207" fill="#059669"/>
+
+  <rect class="clientBox" x="90" y="1155" width="300" height="90" rx="14"/>
+  <text x="125" y="1188" class="boxTitle">연결 완료 UI</text>
+  <text x="125" y="1216" class="body">회원 응답의 walletAddress 반영</text>
+  <path d="M1375 1238 C1170 1290 610 1290 402 1204" fill="none" stroke="#059669" stroke-width="3"/><polygon points="390,1200 403,1198 398,1212" fill="#059669"/>
+
+  <!-- Section 2 -->
+  <rect x="65" y="1300" width="1670" height="44" rx="12" fill="#0f766e"/>
+  <text x="900" y="1330" class="sectionTitle" text-anchor="middle">2. 연결 직후 ETH 자산 인증</text>
+
+  <rect class="clientBox" x="90" y="1385" width="300" height="94" rx="14"/>
+  <circle cx="110" cy="1400" r="15" fill="#2563eb"/><text x="110" y="1401" class="step">8</text>
+  <text x="135" y="1417" class="boxTitle">자산 조회</text>
+  <text x="135" y="1446" class="body">GET /api/v1/me/assets</text>
+  <text x="135" y="1470" class="small">Bearer JWT</text>
+
+  <rect class="serverBox" x="815" y="1370" width="460" height="124" rx="14"/>
+  <text x="850" y="1403" class="boxTitle">연결된 모든 EVM 지갑 집계</text>
+  <text x="850" y="1432" class="body">각 지갑의 ETH 잔액 조회 후 합산</text>
+  <text x="850" y="1456" class="body">ETH/KRW 가격으로 원화 가치 계산</text>
+  <text x="850" y="1480" class="small">일부 지갑 실패 시 불완전 합계를 저장하지 않음</text>
+  <path d="M390 1432 H803" fill="none" stroke="#2563eb" stroke-width="3"/><polygon points="815,1432 803,1425 803,1439" fill="#2563eb"/>
+
+  <rect class="dataBox" x="1375" y="1365" width="340" height="128" rx="14"/>
+  <text x="1410" y="1398" class="boxTitle">외부 조회</text>
+  <text x="1410" y="1427" class="body">Ethereum RPC: eth_getBalance</text>
+  <text x="1410" y="1451" class="body">CoinGecko: ETH/KRW 가격</text>
+  <text x="1410" y="1475" class="small">RPC URL 미설정/오류 시 503</text>
+  <path d="M1275 1432 H1363" fill="none" stroke="#059669" stroke-width="3" stroke-dasharray="8 7"/><polygon points="1375,1432 1363,1425 1363,1439" fill="#059669"/>
+
+  <rect class="dataBox" x="1375" y="1525" width="340" height="92" rx="14"/>
+  <circle cx="1395" cy="1540" r="15" fill="#d97706"/><text x="1395" y="1541" class="step">9</text>
+  <text x="1420" y="1557" class="boxTitle">asset_snapshots 저장</text>
+  <text x="1420" y="1585" class="body">수량 · 원화 가치 · walletCount</text>
+  <text x="1420" y="1608" class="small">quantity &gt; 0 이면 verified=true</text>
+  <path d="M1045 1494 V1571 H1363" fill="none" stroke="#059669" stroke-width="3"/><polygon points="1375,1571 1363,1564 1363,1578" fill="#059669"/>
+
+  <rect class="clientBox" x="90" y="1525" width="300" height="98" rx="14"/>
+  <circle cx="110" cy="1540" r="15" fill="#2563eb"/><text x="110" y="1541" class="step">10</text>
+  <text x="135" y="1557" class="boxTitle">포트폴리오 표시</text>
+  <text x="135" y="1586" class="body">walletCount + ETH 자산 응답</text>
+  <text x="135" y="1610" class="small">보유 수량에 따라 홀더 인증 표시</text>
+  <path d="M1375 1600 C1120 1670 620 1670 402 1579" fill="none" stroke="#059669" stroke-width="3"/><polygon points="390,1574 403,1572 398,1586" fill="#059669"/>
+
+  <text x="900" y="1690" class="small" text-anchor="middle">소스 기준: WalletController · AuthService · WalletSignatureVerifier · AssetService</text>
+</svg>
