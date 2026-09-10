@@ -35,6 +35,8 @@ cryptalk:
     ethereum-rpc-url: ${ETHEREUM_RPC_URL:}
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  test-pages:
+    enabled: ${CRYPTALK_TEST_PAGES_ENABLED:false}
   media:
     storage-path: ${MEDIA_STORAGE_PATH:./uploads}
   market-price:

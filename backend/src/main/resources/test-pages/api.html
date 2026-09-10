@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrypTalk API Test Console</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: #101d31;
+      --panel-2: #15243b;
+      --line: #293a55;
+      --text: #e8eef8;
+      --muted: #94a3b8;
+      --blue: #60a5fa;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #fb7185;
+      --purple: #c084fc;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at top, #132441 0, var(--bg) 38rem); color: var(--text); font: 14px/1.5 system-ui, sans-serif; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    header { max-width: 1500px; margin: auto; padding: 34px 24px 18px; display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); letter-spacing: -.04em; }
+    h2, h3 { margin: 0; }
+    .subtitle { margin: 7px 0 0; color: var(--muted); }
+    .header-actions { display: grid; justify-items: end; gap: 10px; }
+    nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    nav a { color: var(--muted); text-decoration: none; border: 1px solid transparent; border-radius: 9px; padding: 6px 10px; }
+    nav a:hover, nav a.active { color: var(--text); border-color: var(--line); background: #14243a; }
+    .pill { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; color: var(--muted); background: #0c1728; white-space: nowrap; }
+    .pill.ok { color: var(--green); border-color: #176e59; }
+    main { max-width: 1500px; margin: auto; padding: 0 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; }
+    .workspace { min-width: 0; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid.single { grid-template-columns: 1fr; }
+    .card { background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 18px 50px #02061755; }
+    .hub-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .hub-link { display: block; color: var(--text); text-decoration: none; border: 1px solid var(--line); background: #0b182a; border-radius: 14px; padding: 18px; }
+    .hub-link:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .hub-link strong { display: block; font-size: 18px; margin-bottom: 7px; }
+    .hub-link span { color: var(--muted); }
+    .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .card-head p { margin: 4px 0 0; color: var(--muted); }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
+    label.wide { grid-column: 1 / -1; }
+    input, textarea, select { width: 100%; color: var(--text); background: #091526; border: 1px solid var(--line); border-radius: 10px; padding: 10px 11px; outline: none; }
+    input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #2563eb22; }
+    textarea { min-height: 145px; resize: vertical; font-family: ui-monospace, monospace; font-size: 12px; tab-size: 2; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .button { border: 1px solid var(--line); border-radius: 10px; background: #1b2b44; color: var(--text); padding: 9px 13px; }
+    .button:hover { border-color: var(--blue); }
+    .button.primary { background: #2563eb; border-color: #3b82f6; }
+    .button.wallet { background: #6d28d9; border-color: #8b5cf6; }
+    .button.danger { color: #fecdd3; border-color: #9f1239; background: #4c0519; }
+    .button:disabled { opacity: .5; cursor: wait; }
+    .status-box { margin-top: 14px; border: 1px solid var(--line); background: #0a1628; border-radius: 12px; padding: 12px; min-height: 48px; color: var(--muted); overflow-wrap: anywhere; }
+    .status-box strong { color: var(--text); }
+    .wallet-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding: 10px 0; }
+    .wallet-row:first-child { border-top: 0; }
+    .wallet-row code { color: var(--blue); overflow-wrap: anywhere; }
+    .explorer { margin-top: 18px; }
+    .toolbar { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+    .toolbar input { flex: 1; }
+    .tag-group { margin-top: 14px; }
+    .tag-title { color: #cbd5e1; margin: 18px 2px 8px; font-size: 16px; }
+    details.endpoint { background: var(--panel); border: 1px solid var(--line); border-radius: 13px; margin: 8px 0; overflow: hidden; }
+    details.endpoint[open] { border-color: #3b82f680; }
+    summary { list-style: none; display: grid; grid-template-columns: 72px minmax(220px, 1fr) minmax(180px, .8fr); gap: 12px; align-items: center; padding: 13px 15px; cursor: pointer; }
+    summary::-webkit-details-marker { display: none; }
+    .method { display: inline-grid; place-items: center; border-radius: 7px; padding: 4px 7px; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+    .method.GET { color: #bfdbfe; background: #1d4ed855; }
+    .method.POST { color: #bbf7d0; background: #04785755; }
+    .method.PUT, .method.PATCH { color: #fef3c7; background: #b4530955; }
+    .method.DELETE { color: #fecdd3; background: #be123c55; }
+    .path { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+    .summary-text { color: var(--muted); text-align: right; }
+    .endpoint-body { border-top: 1px solid var(--line); background: #0c1829; padding: 16px; }
+    .param-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .request-result { margin-top: 12px; white-space: pre-wrap; word-break: break-word; background: #07111f; border: 1px solid var(--line); border-radius: 10px; padding: 12px; color: #cbd5e1; max-height: 360px; overflow: auto; }
+    aside { position: sticky; top: 16px; align-self: start; height: calc(100vh - 32px); display: flex; flex-direction: column; }
+    #logs { flex: 1; overflow: auto; font-family: ui-monospace, monospace; font-size: 12px; }
+    .log { border-bottom: 1px solid var(--line); padding: 11px 0; }
+    .log-time { color: #64748b; }
+    .log-line { display: flex; justify-content: space-between; gap: 8px; }
+    .log pre { white-space: pre-wrap; word-break: break-word; color: #cbd5e1; margin: 7px 0 0; }
+    .code-ok { color: var(--green); }.code-error { color: var(--red); }
+    .notice { color: var(--amber); font-size: 12px; margin-top: 10px; }
+    .hidden { display: none !important; }
+    @media (max-width: 1050px) { main { grid-template-columns: 1fr; } aside { position: static; height: 520px; } }
+    @media (max-width: 720px) { header { align-items: start; flex-direction: column; } .header-actions { justify-items: start; } nav { justify-content: flex-start; } .grid, .hub-grid, .fields, .param-grid { grid-template-columns: 1fr; } summary { grid-template-columns: 64px 1fr; } .summary-text { grid-column: 1 / -1; text-align: left; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>CrypTalk API Test Console</h1>
+      <p class="subtitle">현재 OpenAPI 계약 전체와 EVM 지갑 연결을 같은 origin에서 테스트합니다.</p>
+    </div>
+    <div class="header-actions">
+      <nav aria-label="테스트 페이지">
+        <a href="/test" data-route="/test">허브</a>
+        <a href="/test/auth" data-route="/test/auth">인증</a>
+        <a href="/test/wallet" data-route="/test/wallet">지갑</a>
+        <a href="/test/api" data-route="/test/api">전체 API</a>
+      </nav>
+      <span id="session-pill" class="pill">로그인 안 됨</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="workspace">
+      <section class="card" data-page-section="hub">
+        <div class="card-head">
+          <div><h2>테스트 선택</h2><p>필요한 기능으로 이동하세요. 상단 메뉴를 사용하면 로그인 세션이 유지됩니다.</p></div>
+        </div>
+        <div class="hub-grid">
+          <a class="hub-link" href="/test/auth" data-route="/test/auth"><strong>인증 테스트</strong><span>회원가입, 로그인, refresh, 로그아웃</span></a>
+          <a class="hub-link" href="/test/wallet" data-route="/test/wallet"><strong>EVM 지갑 테스트</strong><span>MetaMask 서명, 연결, 목록, 해제, ETH 자산</span></a>
+          <a class="hub-link" href="/test/api" data-route="/test/api"><strong>전체 API Explorer</strong><span>OpenAPI 기반 전체 엔드포인트 직접 실행</span></a>
+        </div>
+      </section>
+
+      <div class="grid">
+        <article class="card" data-page-section="auth">
+          <div class="card-head">
+            <div><h2>인증 세션</h2><p>토큰은 이 탭의 메모리에만 저장됩니다.</p></div>
+          </div>
+          <div class="fields">
+            <label>아이디<input id="login-id" value="api-tester" autocomplete="username"></label>
+            <label>닉네임<input id="nickname" value="API 테스터"></label>
+            <label class="wide">비밀번호<input id="password" type="password" value="strong-password-123" autocomplete="current-password"></label>
+          </div>
+          <div class="actions">
+            <button class="button primary" data-action="login">로그인</button>
+            <button class="button" data-action="signup">회원가입</button>
+            <button class="button" data-action="refresh">세션 갱신</button>
+            <button class="button danger" data-action="logout">로그아웃</button>
+          </div>
+          <div id="session-status" class="status-box">먼저 회원가입하거나 로그인하세요.</div>
+        </article>
+
+        <article class="card" data-page-section="wallet">
+          <div class="card-head">
+            <div><h2>EVM 지갑</h2><p>MetaMask 등 injected wallet의 personal_sign을 사용합니다.</p></div>
+          </div>
+          <div class="actions">
+            <button class="button wallet" data-action="connect-wallet">지갑 서명 및 연결</button>
+            <button class="button" data-action="load-wallets">연결 목록</button>
+            <button class="button" data-action="load-assets">ETH 자산 조회</button>
+          </div>
+          <p class="notice">개인키·시드 문구를 입력하지 마세요. 자산 조회에는 ETHEREUM_RPC_URL이 필요합니다.</p>
+          <div id="wallet-status" class="status-box">연결된 지갑을 조회할 수 있습니다.</div>
+          <div id="wallet-list"></div>
+        </article>
+      </div>
+
+      <section class="card explorer" data-page-section="api">
+        <div class="card-head">
+          <div><h2>전체 API</h2><p>OpenAPI JSON에서 엔드포인트와 요청 필드를 자동 생성합니다.</p></div>
+          <span id="operation-count" class="pill">불러오는 중</span>
+        </div>
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="경로, 메서드 또는 기능 검색">
+          <button class="button" data-action="reload-spec">새로고침</button>
+        </div>
+        <div id="api-list"></div>
+      </section>
+    </section>
+
+    <aside class="card">
+      <div class="card-head">
+        <div><h2>요청 로그</h2><p>비밀번호, JWT와 서명은 표시하지 않습니다.</p></div>
+        <button class="button" data-action="clear-logs">비우기</button>
+      </div>
+      <div id="logs"><div class="status-box">아직 실행한 요청이 없습니다.</div></div>
+    </aside>
+  </main>
+
+  <script>
+    const state = { token: null, member: null, spec: null, operations: [] };
+    const methods = ["get", "post", "put", "patch", "delete"];
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function sanitized(value) {
+      if (!value || typeof value !== "object") return value;
+      if (Array.isArray(value)) return value.map(sanitized);
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+        if (/password|token|signature/i.test(key)) return [key, "[숨김]"];
+        return [key, sanitized(item)];
+      }));
+    }
+
+    function addLog(method, path, status, payload) {
+      const logs = $("#logs");
+      if (logs.firstElementChild?.classList.contains("status-box")) logs.replaceChildren();
+      const item = element("div", "log");
+      const line = element("div", "log-line");
+      line.append(element("strong", "", `${method} ${path}`));
+      line.append(element("span", status >= 200 && status < 400 ? "code-ok" : "code-error", String(status)));
+      item.append(line, element("span", "log-time", new Date().toLocaleTimeString()));
+      if (payload !== undefined && payload !== "") {
+        const pre = element("pre");
+        pre.textContent = typeof payload === "string" ? payload : JSON.stringify(sanitized(payload), null, 2);
+        item.append(pre);
+      }
+      logs.prepend(item);
+    }
+
+    async function request(path, options = {}) {
+      const method = options.method || "GET";
+      const headers = new Headers(options.headers || {});
+      if (state.token && options.auth !== false) headers.set("Authorization", `Bearer ${state.token}`);
+      const response = await fetch(path, { ...options, method, headers, credentials: "include" });
+      const contentType = response.headers.get("content-type") || "";
+      let data = "";
+      if (response.status !== 204) {
+        if (contentType.includes("application/json")) data = await response.json();
+        else if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
+          const blob = await response.blob();
+          data = `[binary ${contentType}, ${blob.size} bytes]`;
+        } else data = await response.text();
+      }
+      addLog(method, path, response.status, data);
+      if (!response.ok) throw new Error(typeof data === "object" ? JSON.stringify(data) : data || `${response.status}`);
+      return data;
+    }
+
+    async function jsonRequest(path, method, body, auth = true) {
+      return request(path, {
+        method,
+        auth,
+        headers: { "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    }
+
+    function setSession(auth) {
+      state.token = auth?.accessToken || null;
+      state.member = auth?.member || null;
+      const pill = $("#session-pill");
+      pill.textContent = state.member ? `${state.member.nickname} · JWT 활성` : "로그인 안 됨";
+      pill.classList.toggle("ok", Boolean(state.token));
+      $("#session-status").innerHTML = state.member
+        ? `<strong>${escapeHtml(state.member.nickname)}</strong><br>memberId=${state.member.id} · visibility=${state.member.assetVisibility}`
+        : "먼저 회원가입하거나 로그인하세요.";
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    }
+
+    function navigate(path, push = true) {
+      const routes = { "/test": "hub", "/test/": "hub", "/test/auth": "auth", "/test/wallet": "wallet", "/test/api": "api" };
+      const page = routes[path] || "hub";
+      $$('[data-page-section]').forEach(section => section.classList.toggle("hidden", section.dataset.pageSection !== page));
+      $(".grid").classList.toggle("hidden", page !== "auth" && page !== "wallet");
+      $(".grid").classList.toggle("single", page === "auth" || page === "wallet");
+      $$('[data-route]').forEach(link => link.classList.toggle("active", routes[link.dataset.route] === page));
+      if (push && location.pathname !== path) history.pushState({}, "", path);
+      document.title = `CrypTalk ${page === "hub" ? "API Test Console" : `${page.toUpperCase()} Test`}`;
+    }
+
+    async function authenticate(kind) {
+      const loginId = $("#login-id").value.trim();
+      const password = $("#password").value;
+      const body = kind === "signup" ? { loginId, password, nickname: $("#nickname").value.trim() } : { loginId, password };
+      const auth = await jsonRequest(`/api/v1/auth/${kind}`, "POST", body, false);
+      setSession(auth);
+    }
+
+    async function refreshSession() {
+      setSession(await request("/api/v1/auth/refresh", { method: "POST", auth: false }));
+    }
+
+    async function logout() {
+      await request("/api/v1/auth/logout", { method: "POST", auth: false });
+      setSession(null);
+      $("#wallet-list").replaceChildren();
+    }
+
+    function requireToken() {
+      if (!state.token) throw new Error("먼저 로그인해 주세요.");
+    }
+
+    async function connectWallet() {
+      requireToken();
+      if (!window.ethereum) throw new Error("MetaMask 등 EVM 지갑 확장 프로그램을 찾을 수 없습니다.");
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const walletAddress = accounts?.[0];
+      if (!walletAddress) throw new Error("선택한 지갑 계정이 없습니다.");
+      $("#wallet-status").textContent = `${walletAddress} 연결용 nonce 발급 중...`;
+      const nonce = await jsonRequest("/api/v1/me/wallet/nonce", "POST", { walletAddress });
+      const signature = await window.ethereum.request({ method: "personal_sign", params: [nonce.message, walletAddress] });
+      const member = await jsonRequest("/api/v1/me/wallet", "POST", { walletAddress, nonceId: nonce.nonceId, signature });
+      state.member = member;
+      $("#wallet-status").innerHTML = `<strong>연결 성공</strong><br>${escapeHtml(walletAddress)}`;
+      await loadWallets();
+    }
+
+    async function loadWallets() {
+      requireToken();
+      const wallets = await request("/api/v1/me/wallets");
+      const list = $("#wallet-list");
+      list.replaceChildren();
+      if (!wallets.length) {
+        list.append(element("div", "status-box", "연결된 지갑이 없습니다."));
+        return;
+      }
+      wallets.forEach(wallet => {
+        const row = element("div", "wallet-row");
+        const info = element("div");
+        info.append(element("code", "", wallet.address), element("div", "small", `#${wallet.id} · ${wallet.chainType}`));
+        const remove = element("button", "button danger", "해제");
+        remove.addEventListener("click", () => run(remove, async () => {
+          await request(`/api/v1/me/wallets/${wallet.id}`, { method: "DELETE" });
+          await loadWallets();
+        }));
+        row.append(info, remove);
+        list.append(row);
+      });
+    }
+
+    async function loadAssets() {
+      requireToken();
+      const assets = await request("/api/v1/me/assets");
+      $("#wallet-status").textContent = JSON.stringify(assets, null, 2);
+    }
+
+    function resolveSchema(schema) {
+      if (!schema?.$ref) return schema || {};
+      const parts = schema.$ref.replace(/^#\//, "").split("/");
+      return parts.reduce((value, part) => value?.[part], state.spec) || {};
+    }
+
+    function exampleFor(schema, name = "value", depth = 0) {
+      schema = resolveSchema(schema);
+      if (schema.example !== undefined) return schema.example;
+      if (schema.default !== undefined) return schema.default;
+      if (schema.enum?.length) return schema.enum[0];
+      if (depth > 4) return null;
+      if (schema.type === "object" || schema.properties) {
+        const result = {};
+        Object.entries(schema.properties || {}).forEach(([key, property]) => {
+          if (!property.readOnly) result[key] = exampleFor(property, key, depth + 1);
+        });
+        return result;
+      }
+      if (schema.type === "array") return [];
+      if (schema.type === "integer" || schema.type === "number") return /id$/i.test(name) ? 1 : 0;
+      if (schema.type === "boolean") return false;
+      if (/walletAddress/i.test(name)) return "0x1111111111111111111111111111111111111111";
+      if (/coinSymbol|symbol/i.test(name)) return "ETH";
+      if (/currency/i.test(name)) return "KRW";
+      if (/loginId/i.test(name)) return "api-tester";
+      if (/password/i.test(name)) return "strong-password-123";
+      if (/nickname/i.test(name)) return "API 테스터";
+      if (/avatarColor/i.test(name)) return "#627eea";
+      if (/title/i.test(name)) return "API 테스트 게시글";
+      if (/content/i.test(name)) return "API 테스트 내용입니다.";
+      if (schema.format === "uuid") return "00000000-0000-0000-0000-000000000000";
+      return "string";
+    }
+
+    function parameterDefault(parameter) {
+      if (parameter.example !== undefined) return parameter.example;
+      const schema = resolveSchema(parameter.schema);
+      if (schema.default !== undefined) return schema.default;
+      if (/symbol/i.test(parameter.name)) return "ETH";
+      if (/currency/i.test(parameter.name)) return "KRW";
+      if (/size/i.test(parameter.name)) return "30";
+      if (/id$/i.test(parameter.name)) return "1";
+      return "";
+    }
+
+    function createField(parameter) {
+      const label = element("label");
+      label.append(document.createTextNode(`${parameter.name} · ${parameter.in}${parameter.required ? " · 필수" : ""}`));
+      const input = element("input");
+      input.name = parameter.name;
+      input.dataset.location = parameter.in;
+      input.value = parameterDefault(parameter);
+      input.required = Boolean(parameter.required);
+      label.append(input);
+      return label;
+    }
+
+    async function executeOperation(operation, form, result) {
+      let path = operation.path;
+      const query = new URLSearchParams();
+      $$("input[data-location]", form).forEach(input => {
+        if (input.dataset.location === "path") {
+          if (!input.value && input.required) throw new Error(`${input.name} 값을 입력하세요.`);
+          path = path.replace(`{${input.name}}`, encodeURIComponent(input.value));
+        } else if (input.value !== "") query.set(input.name, input.value);
+      });
+      if ([...query].length) path += `?${query}`;
+      const options = { method: operation.method.toUpperCase() };
+      const file = $("input[type=file]", form);
+      const bodyEditor = $("textarea", form);
+      if (file) {
+        if (!file.files[0]) throw new Error("업로드할 파일을 선택하세요.");
+        const data = new FormData();
+        data.append(file.name || "file", file.files[0]);
+        options.body = data;
+      } else if (bodyEditor && bodyEditor.value.trim()) {
+        options.headers = { "Content-Type": "application/json" };
+        options.body = JSON.stringify(JSON.parse(bodyEditor.value));
+      }
+      result.textContent = "요청 중...";
+      try {
+        const data = await request(path, options);
+        result.textContent = data === "" ? "204 No Content" : typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        if (data?.accessToken) setSession(data);
+      } catch (error) {
+        result.textContent = `오류: ${error.message}`;
+        throw error;
+      }
+    }
+
+    function operationCard(operation) {
+      const details = element("details", "endpoint");
+      details.dataset.search = `${operation.method} ${operation.path} ${operation.summary} ${operation.tag}`.toLowerCase();
+      const summary = element("summary");
+      summary.append(element("span", `method ${operation.method.toUpperCase()}`, operation.method.toUpperCase()));
+      summary.append(element("span", "path", operation.path));
+      summary.append(element("span", "summary-text", operation.summary));
+      const body = element("div", "endpoint-body");
+      const form = element("form");
+      const params = element("div", "param-grid");
+      operation.parameters.forEach(parameter => params.append(createField(parameter)));
+      if (operation.parameters.length) form.append(params);
+      if (operation.requestBody) {
+        const content = operation.requestBody.content || {};
+        const multipart = content["multipart/form-data"];
+        if (multipart) {
+          const label = element("label", "wide", "업로드 파일 · multipart/form-data");
+          const input = element("input");
+          input.type = "file";
+          input.name = Object.keys(resolveSchema(multipart.schema).properties || {})[0] || "file";
+          label.append(input);
+          form.append(label);
+        } else {
+          const media = content["application/json"] || Object.values(content)[0];
+          const label = element("label", "wide", "JSON 요청 본문");
+          const textarea = element("textarea");
+          textarea.value = JSON.stringify(exampleFor(media?.schema), null, 2);
+          label.append(textarea);
+          form.append(label);
+        }
+      }
+      const actions = element("div", "actions");
+      const send = element("button", "button primary", "요청 실행");
+      send.type = "submit";
+      actions.append(send);
+      form.append(actions);
+      const result = element("pre", "request-result", "응답이 여기에 표시됩니다.");
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        run(send, () => executeOperation(operation, form, result));
+      });
+      body.append(form, result);
+      details.append(summary, body);
+      return details;
+    }
+
+    async function loadSpec() {
+      const response = await fetch("/v3/api-docs", { credentials: "include" });
+      if (!response.ok) throw new Error(`OpenAPI 문서를 불러오지 못했습니다: ${response.status}`);
+      state.spec = await response.json();
+      state.operations = [];
+      Object.entries(state.spec.paths || {}).forEach(([path, pathItem]) => {
+        methods.forEach(method => {
+          const spec = pathItem[method];
+          if (!spec) return;
+          state.operations.push({
+            method,
+            path,
+            tag: spec.tags?.[0] || "기타",
+            summary: spec.summary || spec.operationId || path,
+            parameters: [...(pathItem.parameters || []), ...(spec.parameters || [])],
+            requestBody: spec.requestBody,
+          });
+        });
+      });
+      renderOperations();
+    }
+
+    function renderOperations() {
+      const list = $("#api-list");
+      list.replaceChildren();
+      const groups = new Map();
+      state.operations.forEach(operation => {
+        if (!groups.has(operation.tag)) groups.set(operation.tag, []);
+        groups.get(operation.tag).push(operation);
+      });
+      groups.forEach((operations, tag) => {
+        const group = element("section", "tag-group");
+        group.append(element("h3", "tag-title", `${tag} · ${operations.length}`));
+        operations.forEach(operation => group.append(operationCard(operation)));
+        list.append(group);
+      });
+      $("#operation-count").textContent = `${state.operations.length}개 API`;
+    }
+
+    function filterOperations() {
+      const query = $("#search").value.trim().toLowerCase();
+      $$("details.endpoint").forEach(card => card.classList.toggle("hidden", !card.dataset.search.includes(query)));
+      $$(".tag-group").forEach(group => group.classList.toggle("hidden", !$("details.endpoint:not(.hidden)", group)));
+    }
+
+    async function run(button, callback) {
+      if (button) button.disabled = true;
+      try { await callback(); }
+      catch (error) {
+        addLog("CLIENT", "테스트 페이지", 0, error.message);
+        alert(error.message);
+      } finally { if (button) button.disabled = false; }
+    }
+
+    document.addEventListener("click", event => {
+      const route = event.target.closest("[data-route]");
+      if (route) {
+        event.preventDefault();
+        navigate(route.dataset.route);
+        return;
+      }
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      const actions = {
+        login: () => authenticate("login"),
+        signup: () => authenticate("signup"),
+        refresh: refreshSession,
+        logout,
+        "connect-wallet": connectWallet,
+        "load-wallets": loadWallets,
+        "load-assets": loadAssets,
+        "reload-spec": loadSpec,
+        "clear-logs": () => $("#logs").replaceChildren(element("div", "status-box", "로그를 비웠습니다.")),
+      };
+      if (actions[button.dataset.action]) run(button, actions[button.dataset.action]);
+    });
+    $("#search").addEventListener("input", filterOperations);
+    window.addEventListener("popstate", () => navigate(location.pathname, false));
+    navigate(location.pathname, false);
+    run(null, loadSpec);
+  </script>
+</body>
+</html>
