@@ -76,6 +76,12 @@ class CrypTalkApplicationTest {
     }
 
     @Test
+    void doesNotExposeApiTestPageByDefault() throws Exception {
+        mvc.perform(get("/test/api"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void rejectsRemovedWalletLoginEndpoint() throws Exception {
         mvc.perform(post("/api/v1/auth/nonce")
                 .contentType(MediaType.APPLICATION_JSON)
