@@ -25,6 +25,7 @@
   background: var(--hd-bg);
   color: var(--hd-ink);
   font-family:
+    var(--font-pretendard),
     "Pretendard Variable",
     Pretendard,
     -apple-system,

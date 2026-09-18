@@ -1,4 +1,72 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
+
+/*
+ * 토큰을 Tailwind 유틸리티로 노출하는 유일한 지점 (D-1).
+ * 값은 styles/tokens.css 에만 있다. 여기에는 매핑만 둔다.
+ */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-text-inverse: var(--text-inverse);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-room-accent: var(--room-accent);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+
+  --color-badge-wallet-bg: var(--badge-wallet-bg);
+  --color-badge-wallet-text: var(--badge-wallet-text);
+  --color-badge-exchange-bg: var(--badge-exchange-bg);
+  --color-badge-exchange-text: var(--badge-exchange-text);
+  --color-badge-none-text: var(--badge-none-text);
+  --color-badge-none-border: var(--badge-none-border);
+
+  /* shadcn/ui 프리미티브가 쓰는 이름 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-pretendard), system-ui, sans-serif;
+
+  --radius-sm: var(--corner-sm);
+  --radius-md: var(--corner-md);
+  --radius-lg: var(--corner-lg);
+}
+
+/*
+ * 아래는 재구축 이전의 랜딩 스타일이다. 현재 app/page.tsx 가 이 클래스들을 쓰고 있어
+ * 그대로 둔다. 랜딩 마크업이 app/(shell)/page.tsx 로 옮겨가는 2단계에서 해체된다.
+ */
 :root{--ink:#131921;--muted:#718096;--line:#e8ebf0;--panel:#fff;--canvas:#f6f7f9;--blue:#3563e9;--blue-dark:#254ec5;--blue-soft:#eef3ff;--green:#1a9b69}*{box-sizing:border-box}html{background:var(--canvas)}body{margin:0;background:var(--canvas);color:var(--ink);font-family:Arial,Helvetica,sans-serif}button,input,textarea{font:inherit}button{color:inherit}button,a{-webkit-tap-highlight-color:transparent}.app-shell{min-height:100vh}
 .topbar{height:68px;position:sticky;z-index:20;top:0;display:flex;align-items:center;gap:34px;padding:0 32px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.96);backdrop-filter:blur(16px)}.brand{width:208px;padding:0;border:0;background:none;display:flex;align-items:center;gap:10px;font-size:18px;letter-spacing:-.4px;font-weight:900;cursor:pointer}.brand-mark{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;color:#fff;background:var(--blue);font-size:16px;box-shadow:0 5px 12px rgba(53,99,233,.25)}.top-search{flex:1;max-width:560px;height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;color:#8b95a5;background:#f5f6f8;border:1px solid transparent;border-radius:11px;transition:.2s}.top-search:focus-within{background:#fff;border-color:#b9c8f4;box-shadow:0 0 0 3px var(--blue-soft)}.top-search span{font-size:22px;line-height:1;transform:rotate(-12deg)}.top-search input{flex:1;border:0;outline:none;background:transparent;font-size:13px}.top-search kbd{padding:3px 7px;border:1px solid #dfe3e8;background:#fff;border-radius:5px;color:#9aa3af;font-size:10px;box-shadow:0 1px 1px #e5e7eb}.top-actions{margin-left:auto;display:flex;align-items:center;gap:12px}.icon-button{position:relative;width:40px;height:40px;border:0;background:transparent;font-size:23px;cursor:pointer}.notification-dot{position:absolute;right:8px;top:8px;width:6px;height:6px;border-radius:50%;background:#ff5c65;border:1.5px solid #fff}.connect-button,.wallet-connected{height:40px;border:0;border-radius:10px;padding:0 18px;background:var(--blue);color:#fff;font-size:13px;font-weight:800;cursor:pointer;transition:.2s}.connect-button:hover{background:var(--blue-dark);transform:translateY(-1px)}.wallet-connected{background:#effbf6;color:#176d50;border:1px solid #cceee1}.status-dot{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#1eb980}.chevron{margin-left:8px;color:#78a894}
 .layout{max-width:1510px;min-height:calc(100vh - 68px);margin:auto;display:grid;grid-template-columns:242px minmax(540px,1fr) 310px;background:var(--canvas)}.sidebar{position:sticky;top:68px;height:calc(100vh - 68px);padding:24px 16px;border-right:1px solid var(--line);background:#fff}.sidebar-head{display:flex;justify-content:space-between;align-items:center;padding:0 8px 14px}.sidebar-head p{margin:0;color:#9099a7;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px}.sidebar-head button{border:0;background:none;color:#8690a0;font-size:19px;cursor:pointer}.coin-search{height:36px;margin:0 2px 10px;padding:0 10px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;color:#8e98a6;background:#fafbfc}.coin-search span{font-size:18px;transform:rotate(-12deg)}.coin-search input{width:100%;border:0;outline:none;background:transparent;font-size:12px}.coin-list{display:flex;flex-direction:column;gap:3px}.coin-row{width:100%;min-height:59px;padding:9px 10px;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer;transition:.16s}.coin-row:hover{background:#f7f8fb}.coin-row.active{background:var(--blue-soft);box-shadow:inset 3px 0 var(--blue)}.coin-logo,.hero-logo{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:#fff;font-size:14px;font-weight:900;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}.coin-name,.coin-price{display:flex;flex-direction:column;gap:3px}.coin-name strong,.coin-price strong{font-size:12px}.coin-name small,.coin-price small{color:#98a1af;font-size:10px}.coin-price{align-items:flex-end}.coin-price .up,.daily-up{color:var(--green)}.coin-price .down{color:#e25360}.sidebar-foot{position:absolute;left:16px;right:16px;bottom:22px;padding-top:14px;border-top:1px solid var(--line)}.sidebar-foot button{width:100%;padding:9px 10px;display:flex;align-items:center;gap:12px;border:0;border-radius:8px;background:transparent;color:#697586;text-align:left;font-size:12px;cursor:pointer}.sidebar-foot button:hover{color:var(--blue);background:var(--blue-soft)}.sidebar-foot span{width:17px;font-size:16px;text-align:center}

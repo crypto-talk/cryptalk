@@ -1,0 +1,88 @@
+/*
+ * 디자인 토큰 단일 원본 (D-1).
+ *
+ * 규칙
+ *   - 값은 여기에만 둔다. 컴포넌트는 Tailwind 클래스로만 쓴다.
+ *   - 이름은 의미 기반이다. `--purple` 이 아니라 `--text-primary`.
+ *   - Tailwind 노출은 `app/globals.css` 의 `@theme inline` 이 담당한다.
+ *     거기서 `--text-primary` 는 `--color-text-primary` 로 매핑되고
+ *     `text-text-primary` / `bg-surface` 같은 유틸리티가 된다.
+ *   - 다크 값은 D-6 에 따라 이번에는 채우지 않는다. 블록만 준비한다.
+ */
+
+:root {
+  /* 면 */
+  --canvas: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f5f6f8;
+  --surface-raised: rgba(255, 255, 255, 0.96);
+
+  /* 글자 */
+  --text-primary: #131921;
+  --text-muted: #718096;
+  --text-subtle: #9099a7;
+  --text-inverse: #ffffff;
+
+  /* 선 */
+  --border-subtle: #e8ebf0;
+  --border-strong: #dfe3e8;
+
+  /* 브랜드 강조. shadcn 의 --accent(은은한 hover 배경)와 구분해 brand 로 둔다. */
+  --brand: #3563e9;
+  --brand-hover: #254ec5;
+  --brand-soft: #eef3ff;
+
+  /* 상태 */
+  --success: #1a9b69;
+  --success-soft: #effbf6;
+  --danger: #ff5c65;
+
+  /*
+   * 방 강조색. `GET /api/v1/coins` 의 accentColor 가 런타임 값이라
+   * 서버에서 받은 뒤 style={{ "--room-accent": accentColor }} 로 덮어쓴다.
+   * CSS 변수가 필수인 이유가 이것이다.
+   */
+  --room-accent: var(--brand);
+
+  /* 배지. 쓰는 곳은 features/badge/ 뿐이다 (구조 규칙 3). */
+  --badge-wallet-bg: #6e56f0;
+  --badge-wallet-text: #ffffff;
+  --badge-exchange-bg: #ccccff;
+  --badge-exchange-text: #1a1a1f;
+  --badge-none-text: #6b6b75;
+  --badge-none-border: #e6e6eb;
+
+  /* 반경. Tailwind 의 --radius-* 키와 이름이 겹치지 않도록 --corner-* 로 둔다. */
+  --corner-sm: 0.375rem;
+  --corner-md: 0.625rem;
+  --corner-lg: 0.875rem;
+
+  /*
+   * shadcn/ui 프리미티브가 참조하는 이름. 값은 위 토큰을 가리키기만 한다.
+   * shadcn 컴포넌트를 새로 추가했는데 색이 비면 여기에 줄을 추가한다.
+   */
+  --background: var(--surface);
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand);
+  --primary-foreground: var(--text-inverse);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-muted);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-muted);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--text-inverse);
+  --border: var(--border-subtle);
+  --input: var(--border-strong);
+  --ring: var(--brand);
+}
+
+/* D-6: 구조만 준비하고 값은 비워 둔다. 다크 대응은 디자인 산출물이 나온 뒤. */
+:root[data-theme="dark"] {
+  /* 의도적으로 비어 있음 */
+}
