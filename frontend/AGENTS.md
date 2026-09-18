@@ -8,8 +8,9 @@ Read the repository `AGENTS.md` first. This file adds the rules that apply under
 - UI primitives: shadcn/ui (copied into `components/ui/`, styled with our tokens). Icons: `lucide-react`.
 - Server state: TanStack Query. Client global state: session, modal, toast only.
 - Editor: Tiptap (rich text, markdown paste, custom chart node). Charts: `lightweight-charts`.
-- Tests: Vitest for unit tests, Playwright for e2e. Vitest arrives in restructure step 1;
-  until then the only suite is the rendered-HTML check under `tests/`.
+- Tests: Vitest for unit tests (`pnpm test`), Playwright for e2e. `tests/rendered-html.test.mjs`
+  is a separate build-dependent check run by `pnpm run test:html`.
+- Fonts: Pretendard, self-hosted. Static subset woff2 in `styles/fonts/`, loaded by `app/fonts.ts`.
 - pnpm is the package manager, pinned by `packageManager` in `package.json`. Never run
   `npm install` here; it would create a competing `package-lock.json`.
 - Deployed on Vercel. `next build` is the build; there is no Cloudflare Worker runtime.
@@ -23,8 +24,9 @@ Keep this map and that page in sync.
 
 ```
 app/
-  layout.tsx            root: font (next/font/local). Server component.
-  providers.tsx         "use client": QueryClientProvider + toast provider
+  layout.tsx            root: font + <Providers>. Server component.
+  providers.tsx         "use client": QueryClientProvider (toast provider goes here too)
+  fonts.ts              next/font/local; files in styles/fonts/
   globals.css           imports styles/tokens.css + Tailwind @theme mapping only
   not-found.tsx         single 404
   (shell)/              header + sidebar (>=900px) / bottom tab (<900px)
@@ -44,6 +46,9 @@ lib/http.ts             fetch wrapper: baseURL, credentials, cookie forwarding o
                         {code,message} normalisation, 401 refresh
 lib/query.ts  lib/format/  lib/utils.ts (cn)  lib/config.ts (env, single read point)
 styles/tokens.css       semantic CSS variables; [data-theme="dark"] block left empty
+styles/fonts/           Pretendard subset woff2, 400/600/700/800/900
+components.json         shadcn/ui config; `shadcn add` writes into components/ui/
+vitest.config.ts        unit test scope: features/**/*.test.ts, lib/**/*.test.ts
 tests/e2e/              Playwright: login.spec.ts, publish-post.spec.ts (run locally)
 .storybook/             Storybook config; stories only for components/ui and features/badge
 ```
@@ -73,28 +78,29 @@ pre-restructure layout. Move them into the tree above; do not add new files to t
 9. Loading/error boundaries: `loading.tsx` per route segment, `error.tsx` per route group,
    inline retry inside a failed section. Toasts and modals are for action failures only.
 
-## Restructure order
+## Restructure state
 
-Step 1 is foundation only, no screens:
+Step 1 (foundation, no screens) is done: tokens, self-hosted Pretendard, `components/ui/`
+primitives, `features/badge/` with unit tests, `lib/` (config, format, query, http skeleton,
+utils), route group boundaries with `error.tsx`, the root `not-found.tsx`, and the ESLint
+import-direction rule.
 
-1. `shadcn` init, then fold the variables it writes into `styles/tokens.css` (semantic names,
-   single source) and leave `globals.css` with the import plus the Tailwind `@theme` mapping.
-2. Pretendard through `next/font/local`.
-3. `lib/utils.ts` (cn), `lib/config.ts`, `lib/format/`.
-4. `features/badge/` with its unit tests.
-5. `lib/query.ts` and `app/providers.tsx`.
-6. `lib/http.ts` skeleton: baseURL, `credentials: 'include'`, `{code,message}` normalisation.
-   Token handling and the 401 refresh wait for the backend cookie change and the agreed
-   error shape. Do not write them twice.
-7. `components/ui/` primitives, `not-found.tsx`, `error.tsx`, the ESLint import-direction rule.
+Deliberately not done yet, do not treat these as oversights:
 
-Not in step 1:
-
-- Emptying `app/globals.css`. Its ~95 classes still back the current landing, so it is
-  dismantled when the landing markup moves in step 2.
-- Storybook. It goes in once `components/ui/` and `features/badge/` actually exist.
+- `app/globals.css` still carries the pre-restructure landing rules. Its ~95 classes back the
+  current `app/page.tsx`, so it is dismantled when the landing markup moves to
+  `app/(shell)/page.tsx` in step 2.
+- `lib/http.ts` stops at baseURL, `credentials: 'include'` and `{code,message}` normalisation.
+  Token handling and the 401 refresh wait for the backend cookie change (B-3) and the agreed
+  error shape (C-5). Requests that need auth still go through the old `lib/api.ts`.
+- `components/ui/` is exempt from ESLint so the shadcn copies stay diffable against upstream.
+- Storybook. It goes in now that `components/ui/` and `features/badge/` exist.
 - husky, lint-staged and GitHub Actions. They live at the repository root, outside
   `frontend/`, so they need an explicit scope expansion and belong in their own change.
+
+Step 2 moves the landing into `app/(shell)/page.tsx`, splits `app/_components/*` into
+`features/*` and `components/layout/`, and updates the assertions in
+`tests/rendered-html.test.mjs`, which are pinned to the current landing markup.
 
 ## Working rules
 
@@ -138,11 +144,11 @@ Run from `frontend/`, in order:
 
 1. `pnpm exec tsc --noEmit`
 2. `pnpm run lint`
-3. `pnpm test`
+3. `pnpm test` — Vitest unit suite, no build needed
 4. `pnpm run build`
+5. `pnpm run test:html` — rendered-HTML check; it builds again, so run it after step 4 only
+   when the change can affect the rendered page
 
-`pnpm test` currently runs `next build` itself before a rendered-HTML check. When Vitest
-lands in step 1, split it: `test` runs the Vitest unit suite alone and is what CI runs,
-`test:html` keeps the build-dependent check. CI must not build twice.
+CI runs steps 1-3. Do not put `test:html` in CI as well; it would make the build run twice.
 
 Playwright e2e tests need the backend running; they are run locally, not in CI, for now.
