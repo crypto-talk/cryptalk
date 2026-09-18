@@ -22,7 +22,7 @@ async function waitForServer(timeoutMs = 90_000) {
   throw new Error(`next start did not become ready on ${origin}`);
 }
 
-test("server-renders the CrypTalk application", async (t) => {
+test("server-renders the Hodlit application", async (t) => {
   const server = spawn(
     process.platform === "win32" ? "npx.cmd" : "npx",
     ["next", "start", "--port", String(port)],
@@ -38,7 +38,6 @@ test("server-renders the CrypTalk application", async (t) => {
   const html = await response.text();
   // 아래 문구는 현재 랜딩(app/page.tsx)의 마크업 기준이다.
   // 랜딩이 app/(shell)/page.tsx 로 옮겨가는 2단계에서 같이 손봐야 한다.
-  assert.match(html, /CRYPTALK/);
   assert.match(html, /Hodlit/);
   assert.match(html, /로그인/);
   assert.match(html, /지금 뜨는 방/);
