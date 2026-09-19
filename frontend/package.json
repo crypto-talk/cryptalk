@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "test:watch": "vitest",
     "test:html": "next build && node --test tests/rendered-html.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:api": "openapi-typescript https://cryptalk-api.hojun.xyz/v3/api-docs -o lib/api-schema.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.1",
@@ -37,6 +38,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "eslint-config-prettier": "10.1.8",
+    "openapi-typescript": "7.13.0",
     "prettier": "3.9.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
