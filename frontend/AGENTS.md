@@ -77,9 +77,13 @@ pre-restructure layout. Move them into the tree above; do not add new files to t
    each other. Shared code moves down to `components/` or `lib/`. Enforced by ESLint.
 2. `features/<domain>/api.ts` is the only data entry point. Mock data lives in `mock.ts` and
    never leaks past `api.ts`. Components receive data through props only.
-3. Badge tier, holding period and amount-range formatting exist only in `features/badge/`.
-   These functions implement the wallet de-anonymisation guard (month rounding, wide ranges,
-   no sell timestamps). Do not reimplement them elsewhere.
+3. Badge and holder-snapshot wording exists only in `features/badge/label.ts`. These are the
+   wallet de-anonymisation guard, so they must not be reimplemented per screen.
+   **The amount band is computed by the backend**, not here: `holderSnapshot.quantityBand`
+   arrives as a finished string (`"10~100 ETH"`, or null when unverified) and is passed
+   through. Recomputing it from a raw quantity puts the boundaries in two places, and they
+   drifted apart once already. To change the bands, change `PostHolderSnapshot.band()` in the
+   backend. `holdingMonths` likewise arrives already floored; do not round it again.
 4. One component per file. No barrel `index.ts` files; use the `@/` alias instead.
 5. File and folder names are kebab-case (`post-card.tsx`). Components and types are PascalCase.
    Hooks are `use-*.ts`. Windows git is case-insensitive and the Vercel build is not.
@@ -149,6 +153,9 @@ becomes the spec.
 - Preserve unrelated user changes. Never stash, reset, or delete them to make a task easier.
 - Never commit `.env*` files, tokens, or API credentials.
 - Use Conventional Commit subjects: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+- **Do not add AI attribution to commits or pull requests.** No `Co-Authored-By:` for an
+  assistant, no session links, no "generated with" footers. The commit author is the person
+  who ran the task. This applies to every agent working in this repository.
 
 ## Never minify or collapse source
 
@@ -164,6 +171,12 @@ spend effort reformatting it.)
 - Runtime response validation (zod) only for money/PII responses: `/me/assets`, snapshots,
   wallet. Everything else trusts the type.
 - `GET /api/v1/me/assets` returns `AssetPortfolio` (`{ walletCount, assets }`), not an array.
+- Posts and comments carry `holderSnapshot` (`HolderSnapshotResponse`): `verificationLevel`
+  is `WALLET` or `UNVERIFIED` (no exchange tier exists yet), `quantityBand` is a finished
+  string or null, `holdingMonths` is an already-floored integer or null.
+- OpenAPI spec: https://cryptalk-api.hojun.xyz/v3/api-docs — the accurate endpoint list.
+  `GET /feed` (cursor + size, returns `{items, nextCursor, hasMore}`) already exists; the
+  older documents claiming there is no global feed are out of date.
 - `holdingMonths` is always `null` until an EVM indexer populates `holdingSince`. Render the
   fixed label `보유 기간 미확인`; do not build UI that assumes a value.
 - Public post and comment responses do not carry wallet addresses. Do not reintroduce them.
