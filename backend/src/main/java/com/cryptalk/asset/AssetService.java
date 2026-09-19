@@ -4,13 +4,13 @@ import com.cryptalk.coin.Coin;
 import com.cryptalk.coin.CoinRepository;
 import com.cryptalk.coin.VerificationAvailability;
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.market.MarketPriceService;
 import com.cryptalk.member.Member;
 import com.cryptalk.member.MemberRepository;
 import com.cryptalk.wallet.WalletRepository;
 import java.math.BigDecimal;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +31,7 @@ public class AssetService {
 
     @Transactional
     public List<AssetResponse> refreshAndList(Long memberId) {
-        Member member = members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        Member member = members.findById(memberId).orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
         var connectedWallets = wallets.findByMemberIdOrderByCreatedAtAsc(memberId);
         if (connectedWallets.isEmpty()) return List.of();
         Coin eth = coins.findBySymbolIgnoreCaseAndActiveTrue("ETH").orElseThrow();
@@ -39,7 +39,7 @@ public class AssetService {
         for (var wallet : connectedWallets) {
             EthereumBalanceClient.BalanceResult balance = ethereum.balanceOf(wallet.getAddress());
             if (!"VERIFIED".equals(balance.status()))
-                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "EVM 지갑 잔액을 모두 확인하지 못했습니다.");
+                throw new ApiException(ErrorCode.ASSET_BALANCE_UNAVAILABLE);
             quantity = quantity.add(balance.quantity());
         }
         AssetSnapshot snapshot = snapshots.findByMemberIdAndCoinId(memberId, eth.getId()).orElseGet(() -> new AssetSnapshot(member, eth));

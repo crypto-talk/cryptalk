@@ -1,6 +1,7 @@
 package com.cryptalk.media;
 
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.member.Member;
 import com.cryptalk.member.MemberRepository;
 import com.cryptalk.post.Post;
@@ -17,7 +18,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -59,20 +59,20 @@ public class MediaService {
     @Transactional
     public StoredMedia store(Long memberId, MultipartFile file) {
         Member member = members.findById(memberId)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
-        if (file.isEmpty()) throw new ApiException(HttpStatus.BAD_REQUEST, "빈 파일은 업로드할 수 없습니다.");
-        if (file.getSize() > MAX_BYTES) throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "파일은 25MB 이하여야 합니다.");
+            .orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
+        if (file.isEmpty()) throw new ApiException(ErrorCode.EMPTY_MEDIA_FILE);
+        if (file.getSize() > MAX_BYTES) throw new ApiException(ErrorCode.MEDIA_TOO_LARGE);
         String contentType = file.getContentType();
         String extension = EXTENSIONS.get(contentType);
-        if (extension == null) throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 이미지 또는 영상 형식입니다.");
+        if (extension == null) throw new ApiException(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
 
         String fileName = UUID.randomUUID() + "." + extension;
         Path target = root.resolve(fileName).normalize();
-        if (!target.getParent().equals(root)) throw new ApiException(HttpStatus.BAD_REQUEST, "잘못된 파일 이름입니다.");
+        if (!target.getParent().equals(root)) throw new ApiException(ErrorCode.INVALID_FILE_NAME);
         try {
             Files.copy(file.getInputStream(), target);
         } catch (IOException exception) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "파일을 저장하지 못했습니다.");
+            throw new ApiException(ErrorCode.MEDIA_STORAGE_ERROR);
         }
         String mediaType = contentType.startsWith("image/") ? "IMAGE" : "VIDEO";
         assets.save(new MediaAsset(fileName, member, mediaType, contentType, file.getSize()));
@@ -83,11 +83,11 @@ public class MediaService {
     @Transactional
     public void delete(Long memberId, String fileName) {
         MediaAsset asset = assets.findById(fileName)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.MEDIA_NOT_FOUND));
         if (!asset.getMember().getId().equals(memberId))
-            throw new ApiException(HttpStatus.FORBIDDEN, "업로드한 사용자만 미디어를 삭제할 수 있습니다.");
+            throw new ApiException(ErrorCode.MEDIA_FORBIDDEN, "업로드한 사용자만 미디어를 삭제할 수 있습니다.");
         if (asset.getPost() != null)
-            throw new ApiException(HttpStatus.CONFLICT, "게시글에 연결된 미디어는 게시글 수정 또는 삭제로 제거해 주세요.");
+            throw new ApiException(ErrorCode.MEDIA_IN_USE, "게시글에 연결된 미디어는 게시글 수정 또는 삭제로 제거해 주세요.");
         assets.delete(asset);
         deleteAfterCommit(Set.of(fileName));
     }
@@ -97,11 +97,11 @@ public class MediaService {
         if (fileName == null) return;
         MediaAsset asset = assets.findById(fileName).orElse(null);
         if (asset == null && allowLegacyMissing) return;
-        if (asset == null) throw new ApiException(HttpStatus.BAD_REQUEST, "업로드 기록이 없는 미디어 URL입니다.");
+        if (asset == null) throw new ApiException(ErrorCode.MEDIA_NOT_UPLOADED);
         if (!asset.getMember().getId().equals(memberId))
-            throw new ApiException(HttpStatus.FORBIDDEN, "본인이 업로드한 미디어만 게시할 수 있습니다.");
+            throw new ApiException(ErrorCode.MEDIA_FORBIDDEN, "본인이 업로드한 미디어만 게시할 수 있습니다.");
         if (asset.getPost() != null && !asset.getPost().getId().equals(post.getId()))
-            throw new ApiException(HttpStatus.CONFLICT, "이미 다른 게시글에 연결된 미디어입니다.");
+            throw new ApiException(ErrorCode.MEDIA_ALREADY_LINKED);
         asset.attach(post);
     }
 
@@ -118,14 +118,14 @@ public class MediaService {
 
     public Resource load(String fileName) {
         if (!validFileName(fileName))
-            throw new ApiException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.MEDIA_NOT_FOUND);
         Path target = root.resolve(fileName).normalize();
         if (!target.getParent().equals(root) || !Files.isRegularFile(target))
-            throw new ApiException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.MEDIA_NOT_FOUND);
         try {
             return new UrlResource(target.toUri());
         } catch (MalformedURLException exception) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.MEDIA_NOT_FOUND);
         }
     }
 

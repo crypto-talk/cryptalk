@@ -55,6 +55,18 @@ class CrypTalkApplicationTest {
         assertEquals(42, operationCount);
         assertEquals(expectedTags, actualTags);
         assertFalse(actualTags.stream().anyMatch(tag -> tag.endsWith("-controller")));
+        assertTrue(document.path("components").path("schemas").has("ErrorResponse"));
+        assertTrue(document.path("components").path("schemas").path("ErrorCode").path("enum").isArray());
+        assertTrue(document.path("components").path("schemas").path("ErrorCode").path("enum").toString()
+            .contains("INVALID_CREDENTIALS"));
+        for (JsonNode path : document.path("paths")) {
+            for (var field : path.properties()) {
+                if (!httpMethods.contains(field.getKey())) continue;
+                assertEquals("#/components/schemas/ErrorResponse", field.getValue()
+                    .path("responses").path("default").path("content").path("application/json")
+                    .path("schema").path("$ref").asText());
+            }
+        }
     }
 
     @Test
@@ -117,7 +129,10 @@ class CrypTalkApplicationTest {
         mvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"loginId\":\"missing-user\",\"password\":\"wrong-password\"}"))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
+            .andExpect(jsonPath("$.message").isNotEmpty())
+            .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
     @Test
@@ -125,7 +140,8 @@ class CrypTalkApplicationTest {
         mvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"member@example.com\",\"password\":\"strong-password-123\"}"))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
     @Test
@@ -138,6 +154,16 @@ class CrypTalkApplicationTest {
         mvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"loginId\":\"DUPLICATE-USER\",\"password\":\"strong-password-123\",\"nickname\":\"둘째회원\"}"))
-            .andExpect(status().isConflict());
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("LOGIN_ID_TAKEN"));
+    }
+
+    @Test
+    void returnsCommonErrorContractForMissingAuthentication() throws Exception {
+        mvc.perform(get("/api/v1/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+            .andExpect(jsonPath("$.message").isNotEmpty())
+            .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }

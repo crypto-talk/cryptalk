@@ -9,7 +9,7 @@ These instructions apply to the entire `backend/` tree.
 - Put business rules and authorization checks in services. Mark write operations `@Transactional` and read operations `@Transactional(readOnly = true)`.
 - Use Spring Data JPA repositories for persistence. Avoid native SQL unless the domain query cannot be expressed clearly otherwise.
 - Use request/response records for API DTOs. Put Jakarta validation constraints on request fields.
-- Return expected client/domain failures through `ApiException`; keep the common `{message, timestamp}` error shape.
+- Return expected client/domain failures through `ApiException`; keep the common `{code, message, timestamp}` error shape and use a fixed `ErrorCode` value.
 
 ## Security and data
 

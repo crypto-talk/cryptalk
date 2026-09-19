@@ -1,9 +1,9 @@
 package com.cryptalk.wallet;
 
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,7 @@ public class WalletService {
     public void disconnect(Long memberId, Long walletId) {
         Wallet wallet = wallets.findById(walletId)
             .filter(value -> value.getMember().getId().equals(memberId))
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "지갑을 찾을 수 없습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.WALLET_NOT_FOUND));
         events.save(new WalletConnectionEvent(wallet.getMember(), wallet, WalletConnectionEvent.EventType.DISCONNECTED));
         wallets.delete(wallet);
     }

@@ -1,10 +1,10 @@
 package com.cryptalk.social;
 
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.member.Member;
 import com.cryptalk.member.MemberRepository;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +17,7 @@ public class FollowService {
 
     @Transactional
     public FollowStats follow(Long actorId, Long targetId) {
-        if (actorId.equals(targetId)) throw new ApiException(HttpStatus.BAD_REQUEST, "자기 자신은 팔로우할 수 없습니다.");
+        if (actorId.equals(targetId)) throw new ApiException(ErrorCode.SELF_FOLLOW_NOT_ALLOWED);
         FollowId id = new FollowId(actorId, targetId);
         if (!follows.existsById(id)) follows.save(new Follow(member(actorId), member(targetId)));
         return stats(actorId, targetId);
@@ -48,7 +48,7 @@ public class FollowService {
         return follows.findByFollowerIdOrderByCreatedAtDesc(memberId).stream().map(follow -> summary(follow.getFollowing())).toList();
     }
 
-    private Member member(Long id) { return members.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다.")); }
+    private Member member(Long id) { return members.findById(id).orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND)); }
     private MemberSummary summary(Member member) { return new MemberSummary(member.getId(), member.getNickname(), member.getAvatarColor()); }
 
     public record FollowStats(Long memberId, long followers, long following, boolean followedByMe) {}

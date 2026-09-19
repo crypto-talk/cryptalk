@@ -77,12 +77,30 @@ cookie를 읽을 수 없으며 브라우저가 refresh와 logout 요청에 자�
 
 ```json
 {
+  "code": "INVALID_CREDENTIALS",
   "message": "오류 메시지",
   "timestamp": "2026-08-31T13:30:00Z"
 }
 ```
 
-유효성 검증 실패 메시지는 `필드명: 검증 메시지` 형식입니다.
+클라이언트는 변경될 수 있는 `message`가 아니라 고정 계약인 `code`로 분기해야 합니다.
+유효성 검증 실패 메시지는 `필드명: 검증 메시지` 형식입니다. 전체 코드 목록은 Swagger의
+`ErrorCode` enum에 정의됩니다.
+
+인증 API에서 사용하는 주요 코드는 다음과 같습니다.
+
+| code | HTTP 상태 | 의미 |
+|---|---:|---|
+| `VALIDATION_ERROR` | 400 | 요청 필드 검증 실패 |
+| `MALFORMED_REQUEST` | 400 | JSON 등 요청 형식 오류 |
+| `AUTHENTICATION_REQUIRED` | 401 | 인증 정보 누락 |
+| `INVALID_TOKEN` | 401 | 잘못된 access token |
+| `TOKEN_EXPIRED` | 401 | access/refresh token 만료 |
+| `INVALID_CREDENTIALS` | 401 | 아이디 또는 비밀번호 불일치 |
+| `ACCESS_DENIED` | 403 | 인증됐지만 권한 부족 |
+| `LOGIN_ID_TAKEN` | 409 | 아이디 중복 |
+| `NICKNAME_TAKEN` | 409 | 닉네임 중복 |
+| `INTERNAL_SERVER_ERROR` | 500 | 예상하지 못한 서버 오류 |
 
 ## 1. 회원가입
 
@@ -118,7 +136,7 @@ BCrypt cost 12로 해시됩니다.
 
 - `200 OK`: 공통 인증 응답 및 refresh cookie 발급
 - `400 Bad Request`: 요청값 검증 실패
-- `409 Conflict`: 이미 사용 중인 아이디 또는 닉네임
+- `409 Conflict`: 이미 사용 중인 아이디(`LOGIN_ID_TAKEN`) 또는 닉네임(`NICKNAME_TAKEN`)
 
 ```bash
 curl -i -c cookies.txt \
@@ -152,7 +170,7 @@ Content-Type: application/json
 
 - `200 OK`: 공통 인증 응답 및 refresh cookie 발급
 - `400 Bad Request`: 요청값 검증 실패
-- `401 Unauthorized`: 아이디 또는 비밀번호 불일치
+- `401 Unauthorized`: 아이디 또는 비밀번호 불일치(`INVALID_CREDENTIALS`)
 
 보안을 위해 존재하지 않는 아이디와 잘못된 비밀번호는 같은 오류 메시지를
 반환합니다.
@@ -177,7 +195,7 @@ Cookie: cryptalk_refresh=<refreshToken>
 ### 응답
 
 - `200 OK`: 공통 인증 응답 및 새로운 refresh cookie 발급
-- `401 Unauthorized`: cookie 누락, 만료, 폐기 또는 유효하지 않은 token
+- `401 Unauthorized`: cookie 누락, 만료, 폐기 또는 유효하지 않은 token(`TOKEN_EXPIRED`)
 
 ```bash
 curl -i -b cookies.txt -c cookies.txt \

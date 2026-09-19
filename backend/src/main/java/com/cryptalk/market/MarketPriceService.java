@@ -2,6 +2,7 @@ package com.cryptalk.market;
 
 import com.cryptalk.coin.Coin;
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -14,7 +15,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -84,14 +84,14 @@ public class MarketPriceService {
             }
             return fetched;
         } catch (RestClientException exception) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "실시간 자산 가격을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            throw new ApiException(ErrorCode.MARKET_PRICE_UNAVAILABLE);
         }
     }
 
     private String requireMarketId(Coin coin) {
         String marketId = coin.getMarketPriceId();
         if (marketId == null || marketId.isBlank())
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "이 자산은 실시간 시세 조회를 지원하지 않습니다.");
+            throw new ApiException(ErrorCode.MARKET_PRICE_NOT_SUPPORTED);
         return marketId;
     }
 
@@ -100,7 +100,7 @@ public class MarketPriceService {
     private String normalizeCurrency(String value) {
         String currency = value == null || value.isBlank() ? "USD" : value.trim().toUpperCase(Locale.ROOT);
         if (!currency.matches("^[A-Z0-9]{2,10}$"))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "가격 통화 형식을 확인해 주세요.");
+            throw new ApiException(ErrorCode.INVALID_CURRENCY);
         return currency;
     }
 

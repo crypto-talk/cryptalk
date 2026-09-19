@@ -1,13 +1,13 @@
 package com.cryptalk.comment;
 
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.asset.AssetService;
 import com.cryptalk.asset.AssetSnapshot;
 import com.cryptalk.member.Member;
 import com.cryptalk.post.PostService;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +38,7 @@ public class CommentService {
         Comment comment = comment(commentId);
         posts.own(memberId, comment.getMember().getId()); comments.delete(comment);
     }
-    private Comment comment(Long id) { return comments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다.")); }
+    private Comment comment(Long id) { return comments.findById(id).orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND)); }
     private CommentResponse response(Comment comment) {
         Member member = comment.getMember();
         HolderSnapshotResponse snapshot = holderSnapshots.findById(comment.getId()).map(item ->

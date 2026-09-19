@@ -3,10 +3,10 @@ package com.cryptalk.market;
 import com.cryptalk.coin.Coin;
 import com.cryptalk.coin.CoinRepository;
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +35,7 @@ public class MarketPriceController {
     MarketPriceService.PriceQuote current(@PathVariable String symbol,
                                            @RequestParam(defaultValue = "USD") String currency) {
         Coin coin = coins.findBySymbolIgnoreCaseAndActiveTrue(symbol)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "코인 커뮤니티를 찾을 수 없습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.COIN_NOT_FOUND));
         return prices.currentPrice(coin, currency);
     }
 }

@@ -2,6 +2,7 @@ package com.cryptalk.auth;
 
 import com.cryptalk.auth.AuthDtos.*;
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.member.Member;
 import com.cryptalk.member.MemberRepository;
 import com.cryptalk.wallet.Wallet;
@@ -15,7 +16,6 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,9 +47,9 @@ public class AuthService {
         String loginId = request.loginId().toLowerCase();
         String nickname = request.nickname().trim();
         if (members.findByLoginIdIgnoreCase(loginId).isPresent())
-            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
+            throw new ApiException(ErrorCode.LOGIN_ID_TAKEN);
         if (members.findByNickname(nickname).isPresent())
-            throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+            throw new ApiException(ErrorCode.NICKNAME_TAKEN);
         Member member = members.save(new Member(loginId, passwordEncoder.encode(request.password()), nickname, colorFor(loginId)));
         return issueTokens(member, null);
     }
@@ -57,16 +57,16 @@ public class AuthService {
     @Transactional
     public LoginResult login(LoginRequest request) {
         Member member = members.findByLoginIdIgnoreCase(request.loginId().trim())
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
         if (member.getPasswordHash() == null || !passwordEncoder.matches(request.password(), member.getPasswordHash()))
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
+            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         String address = wallets.findFirstByMemberId(member.getId()).map(Wallet::getAddress).orElse(null);
         return issueTokens(member, address);
     }
 
     @Transactional
     public NonceResponse createLinkNonce(Long memberId, String rawAddress) {
-        members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        members.findById(memberId).orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
         return createNonce(rawAddress, "LINK", memberId);
     }
 
@@ -85,8 +85,8 @@ public class AuthService {
         verifyNonce(request, address, "LINK", memberId);
         Wallet wallet = wallets.findByChainTypeAndAddress("EVM", address).orElse(null);
         if (wallet != null && !wallet.getMember().getId().equals(memberId))
-            throw new ApiException(HttpStatus.CONFLICT, "다른 계정에 연결된 지갑입니다.");
-        Member member = members.findById(memberId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+            throw new ApiException(ErrorCode.WALLET_ALREADY_LINKED);
+        Member member = members.findById(memberId).orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
         if (wallet == null) {
             wallet = wallets.save(new Wallet(member, address));
             walletEvents.save(new WalletConnectionEvent(member, wallet, WalletConnectionEvent.EventType.CONNECTED));
@@ -96,10 +96,10 @@ public class AuthService {
 
     @Transactional
     public LoginResult refresh(String rawToken) {
-        if (rawToken == null || rawToken.isBlank()) throw new ApiException(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다.");
+        if (rawToken == null || rawToken.isBlank()) throw new ApiException(ErrorCode.TOKEN_EXPIRED);
         RefreshToken token = refreshTokens.findByTokenHash(hash(rawToken))
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다."));
-        if (!token.isUsable()) throw new ApiException(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다.");
+            .orElseThrow(() -> new ApiException(ErrorCode.TOKEN_EXPIRED));
+        if (!token.isUsable()) throw new ApiException(ErrorCode.TOKEN_EXPIRED);
         token.revoke();
         String address = wallets.findFirstByMemberId(token.getMember().getId()).map(Wallet::getAddress).orElse(null);
         return issueTokens(token.getMember(), address);
@@ -113,11 +113,11 @@ public class AuthService {
 
     private void verifyNonce(WalletLoginRequest request, String address, String purpose, Long memberId) {
         AuthNonce nonce = nonces.findById(request.nonceId())
-            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "지갑 인증 요청을 찾을 수 없습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.WALLET_CHALLENGE_NOT_FOUND));
         boolean sameMember = memberId == null ? nonce.getMemberId() == null : memberId.equals(nonce.getMemberId());
         if (!nonce.isUsable() || !purpose.equals(nonce.getPurpose()) || !sameMember ||
             !nonce.getWalletAddress().equals(address) || !verifier.verify(address, nonce.getMessage(), request.signature()))
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "지갑 서명이 올바르지 않거나 만료되었습니다.");
+            throw new ApiException(ErrorCode.WALLET_VERIFICATION_FAILED);
         nonce.use();
     }
 

@@ -6,6 +6,7 @@ import com.cryptalk.coin.Coin;
 import com.cryptalk.coin.CoinRepository;
 import com.cryptalk.comment.CommentRepository;
 import com.cryptalk.common.ApiException;
+import com.cryptalk.common.ErrorCode;
 import com.cryptalk.market.MarketPriceService;
 import com.cryptalk.market.MarketPriceService.PriceQuote;
 import com.cryptalk.media.MediaService;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,7 +87,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponse> list(String symbol, Long viewerId, int size) {
         if (coins.findBySymbolIgnoreCaseAndActiveTrue(symbol).isEmpty())
-            throw new ApiException(HttpStatus.NOT_FOUND, "코인 커뮤니티를 찾을 수 없습니다.");
+            throw new ApiException(ErrorCode.COIN_NOT_FOUND);
         return posts.findByCoinSymbolIgnoreCaseOrderByCreatedAtDesc(symbol, PageRequest.of(0, bounded(size)))
             .stream().map(post -> response(post, viewerId)).toList();
     }
@@ -110,7 +110,7 @@ public class PostService {
     public PostResponse create(Long memberId, CreatePostRequest request) {
         Member member = member(memberId);
         Coin coin = coins.findBySymbolIgnoreCaseAndActiveTrue(request.coinSymbol())
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "코인 커뮤니티를 찾을 수 없습니다."));
+            .orElseThrow(() -> new ApiException(ErrorCode.COIN_NOT_FOUND));
         AssetSnapshot snapshot = assets.snapshotForPublication(memberId, coin);
         boolean verified = snapshot != null && snapshot.isVerified();
         BigDecimal value = verified ? snapshot.getValueKrw() : null;
@@ -192,15 +192,15 @@ public class PostService {
     }
 
     public Post post(Long id) {
-        return posts.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+        return posts.findById(id).orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
     }
 
     public Member member(Long id) {
-        return members.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        return members.findById(id).orElseThrow(() -> new ApiException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
     public void own(Long actor, Long owner) {
-        if (!actor.equals(owner)) throw new ApiException(HttpStatus.FORBIDDEN, "작성자만 변경하거나 삭제할 수 있습니다.");
+        if (!actor.equals(owner)) throw new ApiException(ErrorCode.RESOURCE_FORBIDDEN, "작성자만 변경하거나 삭제할 수 있습니다.");
     }
 
     private FeedPageResponse feedPage(Long viewerId, String cursorValue, int requestedSize, List<Long> followingIds) {
@@ -262,7 +262,7 @@ public class PostService {
             return new FeedCursor(Instant.parse(parts[0]), FeedType.valueOf(parts[1]),
                 Long.parseLong(parts[2]), Long.parseLong(parts[3]));
         } catch (RuntimeException exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "올바르지 않은 피드 cursor입니다.");
+            throw new ApiException(ErrorCode.INVALID_CURSOR);
         }
     }
 
@@ -271,9 +271,9 @@ public class PostService {
         Set<String> urls = new HashSet<>();
         for (int index = 0; index < requests.size(); index++) {
             MediaRequest item = requests.get(index);
-            if (item.type() == null) throw new ApiException(HttpStatus.BAD_REQUEST, "미디어 형식이 필요합니다.");
+            if (item.type() == null) throw new ApiException(ErrorCode.MEDIA_TYPE_REQUIRED);
             validateMediaUrl(item.url());
-            if (!urls.add(item.url())) throw new ApiException(HttpStatus.BAD_REQUEST, "같은 미디어를 중복 등록할 수 없습니다.");
+            if (!urls.add(item.url())) throw new ApiException(ErrorCode.DUPLICATE_MEDIA);
             if (item.thumbnailUrl() != null) validateMediaUrl(item.thumbnailUrl());
             mediaFiles.claim(memberId, post, item.url(), existingUrls.contains(item.url()));
             if (item.thumbnailUrl() != null) {
@@ -358,14 +358,14 @@ public class PostService {
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null)
                 throw new IllegalArgumentException();
         } catch (IllegalArgumentException exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "미디어 URL은 업로드 URL 또는 HTTPS URL이어야 합니다.");
+            throw new ApiException(ErrorCode.INVALID_MEDIA_URL);
         }
     }
 
     private YoutubeData youtube(String value) {
         if (value == null || value.isBlank()) return null;
         Matcher matcher = YOUTUBE.matcher(value.trim());
-        if (!matcher.matches()) throw new ApiException(HttpStatus.BAD_REQUEST, "올바른 YouTube 또는 Shorts URL이 아닙니다.");
+        if (!matcher.matches()) throw new ApiException(ErrorCode.INVALID_YOUTUBE_URL);
         String videoId = matcher.group(1);
         return new YoutubeData(value.trim(), videoId, "https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg");
     }
