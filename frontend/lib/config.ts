@@ -25,11 +25,17 @@ export const config = {
 } as const;
 
 /**
- * 프로덕션 빌드에서 값이 비어 있으면 런타임이 아니라 시작 시점에 터뜨린다.
- * 로컬 기본값에 기대어 프로덕션이 localhost 를 때리는 사고를 막는 용도다.
+ * 프로덕션 빌드에서 값이 비어 있으면 런타임이 아니라 빌드 때 터뜨린다.
+ * 로컬 기본값에 기대어 배포본이 localhost 를 때리는 사고를 막는 용도다.
+ *
+ * 이 모듈은 `lib/http.ts` 를 타고 모든 요청 경로에 들어가므로, 여기서 한 번
+ * 부르면 빌드가 실패한다. 조용히 localhost 를 때리다 브라우저에서야 알게 되는
+ * 것보다 낫다.
  */
 export function assertConfig(): void {
   if (process.env.NODE_ENV === "production") {
     required("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL);
   }
 }
+
+assertConfig();
