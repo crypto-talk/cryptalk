@@ -16,7 +16,7 @@ export default function HotPosts({ posts }: Props) {
     <section>
       <div className="hd-section-head">
         <h2 className="hd-t-h2">오늘의 핫글</h2>
-        <span className="hd-info" title="조회수 기준으로 정렬합니다">
+        <span className="hd-info" title="임시로 댓글 수 기준입니다. 집계 기준은 백엔드와 합의 전입니다">
           i
         </span>
       </div>

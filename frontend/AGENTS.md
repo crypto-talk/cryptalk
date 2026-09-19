@@ -82,6 +82,11 @@ a second token store; it was deleted when `lib/auth-token.ts` landed.)
 
 1. Imports flow one way: `app/ -> features/ -> components/ | lib/`. `features/*` never import
    each other. Shared code moves down to `components/` or `lib/`. Enforced by ESLint.
+   ⚠️ One known conflict: rule 3 says badge wording is made only in `features/badge/`, which
+   every other feature needs. `features/landing/api.ts` imports it with an explicit
+   `eslint-disable` and a reason, because duplicating the wording is the more dangerous of the
+   two options. This is a signal that `features/badge/` belongs in `lib/` or `components/` —
+   unresolved, ask before adding a second such import.
 2. `features/<domain>/api.ts` is the only data entry point. Mock data lives in `mock.ts` and
    never leaks past `api.ts`. Components receive data through props only.
 3. Badge and holder-snapshot wording exists only in `features/badge/label.ts`. These are the
@@ -113,6 +118,10 @@ import-direction rule.
 
 Deliberately not done yet, do not treat these as oversights:
 
+- `lib/mock/landing.ts` still holds the landing's view-model types plus the three sections the
+  backend has no API for at all: the ticker aggregate, trending rooms (G-3) and the daily vote
+  (G-5). Rooms, the feed and hot posts now come from `features/landing/api.ts`. The file moves
+  into `features/landing/` with the rest of the landing in step 2.
 - `app/globals.css` still carries the pre-restructure landing rules below the `@theme` block.
   Those ~96 classes are dead: nothing under `app/` uses them, because the current landing
   renders with the `hd-*` classes from `app/_components/landing/landing.css`. The block is
