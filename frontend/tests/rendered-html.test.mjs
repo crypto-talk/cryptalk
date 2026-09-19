@@ -22,7 +22,7 @@ async function waitForServer(timeoutMs = 90_000) {
   throw new Error(`next start did not become ready on ${origin}`);
 }
 
-test("server-renders the CrypTalk application", async (t) => {
+test("server-renders the Hodlit application", async (t) => {
   const server = spawn(
     process.platform === "win32" ? "npx.cmd" : "npx",
     ["next", "start", "--port", String(port)],
@@ -36,11 +36,16 @@ test("server-renders the CrypTalk application", async (t) => {
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /CRYPTALK/);
-  assert.match(html, /Ethereum/);
-  assert.match(html, /회원가입하고 커뮤니티에 참여하세요/);
+  // 아래 문구는 현재 랜딩(app/page.tsx)의 마크업 기준이다.
+  // 랜딩이 app/(shell)/page.tsx 로 옮겨가는 2단계에서 같이 손봐야 한다.
+  assert.match(html, /Hodlit/);
   assert.match(html, /로그인/);
-  assert.match(html, /모바일 주요 메뉴/);
-  assert.match(html, /내 자산 요약/);
+  assert.match(html, /지금 뜨는 방/);
+  assert.match(html, /이더리움/);
+  assert.match(html, /지갑 연결/);
   assert.doesNotMatch(html, /Your site is taking shape/);
+
+  // 폰트는 셀프호스팅이다(D-5). CDN 링크가 다시 들어오면 여기서 걸린다.
+  assert.doesNotMatch(html, /cdn\.jsdelivr\.net/);
+  assert.doesNotMatch(html, /fonts\.googleapis\.com/);
 });

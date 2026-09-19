@@ -24,9 +24,6 @@ import TrendingRooms from "./_components/landing/TrendingRooms";
 import VotePanel from "./_components/landing/VotePanel";
 import "./_components/landing/landing.css";
 
-const PRETENDARD =
-  "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/variable/pretendardvariable.css";
-
 /**
  * 호들잇 랜딩 — 디자인 아트보드 기반 목업.
  *
@@ -96,9 +93,6 @@ export default function Landing() {
 
   return (
     <div className="hd">
-      {/* React 19가 <link>를 head로 올려줘서 layout.tsx를 건드리지 않아도 됩니다. */}
-      <link rel="stylesheet" href={PRETENDARD} precedence="default" />
-
       <Header
         member={member}
         onLogin={() => setAuthMode("login")}

@@ -1,6 +1,12 @@
-# CrypTalk frontend agent harness
+# Hodlit frontend agent harness
 
 Read the repository `AGENTS.md` first. This file adds the rules that apply under `frontend/`.
+
+The product is **Hodlit**. The repository, the npm package name, the API domain and the Java
+package are still spelled `cryptalk`; renaming those is a separate job scheduled for just
+before launch. Anything a user can see — page titles, OG tags, visible copy — says Hodlit.
+The `sessionStorage` key `cryptalk_access` is left alone; it disappears when `access` moves
+to a cookie (B-3).
 
 ## Stack
 
@@ -8,23 +14,34 @@ Read the repository `AGENTS.md` first. This file adds the rules that apply under
 - UI primitives: shadcn/ui (copied into `components/ui/`, styled with our tokens). Icons: `lucide-react`.
 - Server state: TanStack Query. Client global state: session, modal, toast only.
 - Editor: Tiptap (rich text, markdown paste, custom chart node). Charts: `lightweight-charts`.
-- Tests: Vitest for unit tests, Playwright for e2e. Vitest arrives in restructure step 1;
-  until then the only suite is the rendered-HTML check under `tests/`.
+- Tests: Vitest for unit tests (`pnpm test`), Playwright for e2e. `tests/rendered-html.test.mjs`
+  is a separate build-dependent check run by `pnpm run test:html`.
+- Fonts: Pretendard, self-hosted. Static subset woff2 in `styles/fonts/`, loaded by `app/fonts.ts`.
 - pnpm is the package manager, pinned by `packageManager` in `package.json`. Never run
   `npm install` here; it would create a competing `package-lock.json`.
 - Deployed on Vercel. `next build` is the build; there is no Cloudflare Worker runtime.
 - The API client talks to the Spring Boot backend at `NEXT_PUBLIC_API_URL`. There is no
   database, ORM or server-side data layer in this project.
 
-## Repository map (settled 2026-09-18)
+## Where the other documents are
 
-The full tree with rationale lives in the Notion page "구조 고민하기" → "확정 폴더 트리".
-Keep this map and that page in sync.
+- Notion "구조 고민하기" — the structure decisions A~G with their reasoning, the settled
+  folder tree, and the open questions for the backend. This is the source of truth for
+  *why* something is the way it is.
+  https://app.notion.com/p/3dc64d6951428066a501d5da4a774997
+- Claude project `claude/프로젝트_컨텍스트.md` — current state, branch status, repository
+  conventions and their rationale, open issues, session setup.
+
+This file carries the rules an agent has to follow. When it disagrees with the Notion tree,
+the Notion tree wins and this file gets fixed.
+
+## Repository map (settled 2026-09-18)
 
 ```
 app/
-  layout.tsx            root: font (next/font/local). Server component.
-  providers.tsx         "use client": QueryClientProvider + toast provider
+  layout.tsx            root: font + <Providers>. Server component.
+  providers.tsx         "use client": QueryClientProvider (toast provider goes here too)
+  fonts.ts              next/font/local; files in styles/fonts/
   globals.css           imports styles/tokens.css + Tailwind @theme mapping only
   not-found.tsx         single 404
   (shell)/              header + sidebar (>=900px) / bottom tab (<900px)
@@ -44,6 +61,9 @@ lib/http.ts             fetch wrapper: baseURL, credentials, cookie forwarding o
                         {code,message} normalisation, 401 refresh
 lib/query.ts  lib/format/  lib/utils.ts (cn)  lib/config.ts (env, single read point)
 styles/tokens.css       semantic CSS variables; [data-theme="dark"] block left empty
+styles/fonts/           Pretendard subset woff2, 400/600/700/800/900
+components.json         shadcn/ui config; `shadcn add` writes into components/ui/
+vitest.config.ts        unit test scope: features/**/*.test.ts, lib/**/*.test.ts
 tests/e2e/              Playwright: login.spec.ts, publish-post.spec.ts (run locally)
 .storybook/             Storybook config; stories only for components/ui and features/badge
 ```
@@ -73,28 +93,54 @@ pre-restructure layout. Move them into the tree above; do not add new files to t
 9. Loading/error boundaries: `loading.tsx` per route segment, `error.tsx` per route group,
    inline retry inside a failed section. Toasts and modals are for action failures only.
 
-## Restructure order
+## Restructure state
 
-Step 1 is foundation only, no screens:
+Step 1 (foundation, no screens) is done: tokens, self-hosted Pretendard, `components/ui/`
+primitives, `features/badge/` with unit tests, `lib/` (config, format, query, http skeleton,
+utils), route group boundaries with `error.tsx`, the root `not-found.tsx`, and the ESLint
+import-direction rule.
 
-1. `shadcn` init, then fold the variables it writes into `styles/tokens.css` (semantic names,
-   single source) and leave `globals.css` with the import plus the Tailwind `@theme` mapping.
-2. Pretendard through `next/font/local`.
-3. `lib/utils.ts` (cn), `lib/config.ts`, `lib/format/`.
-4. `features/badge/` with its unit tests.
-5. `lib/query.ts` and `app/providers.tsx`.
-6. `lib/http.ts` skeleton: baseURL, `credentials: 'include'`, `{code,message}` normalisation.
-   Token handling and the 401 refresh wait for the backend cookie change and the agreed
-   error shape. Do not write them twice.
-7. `components/ui/` primitives, `not-found.tsx`, `error.tsx`, the ESLint import-direction rule.
+Deliberately not done yet, do not treat these as oversights:
 
-Not in step 1:
-
-- Emptying `app/globals.css`. Its ~95 classes still back the current landing, so it is
-  dismantled when the landing markup moves in step 2.
-- Storybook. It goes in once `components/ui/` and `features/badge/` actually exist.
+- `app/globals.css` still carries the pre-restructure landing rules below the `@theme` block.
+  Those ~96 classes are dead: nothing under `app/` uses them, because the current landing
+  renders with the `hd-*` classes from `app/_components/landing/landing.css`. The block is
+  deleted outright in step 2; it needs no untangling.
+- `lib/http.ts` stops at baseURL, `credentials: 'include'` and `{code,message}` normalisation.
+  Token handling and the 401 refresh wait for the backend cookie change (B-3) and the agreed
+  error shape (C-5). Requests that need auth still go through the old `lib/api.ts`.
+- `components/ui/` is exempt from ESLint so the shadcn copies stay diffable against upstream.
+- Storybook. It goes in now that `components/ui/` and `features/badge/` exist.
 - husky, lint-staged and GitHub Actions. They live at the repository root, outside
   `frontend/`, so they need an explicit scope expansion and belong in their own change.
+
+### Step 2 — landing, login, deploy
+
+The boundary of step 2 is **a deployed site**, not a finished UI. One screen and a real login
+go up first.
+
+1. Move the landing to `app/(shell)/page.tsx`. Split `app/_components/landing/*` into
+   `features/landing/components/` and `components/layout/` (header, sidebar, bottom tab,
+   footer, fab). Pull the shell out properly — every screen in step 3 reuses it.
+2. Convert `landing.css` to tokens and Tailwind classes, and delete the dead block in
+   `app/globals.css`.
+3. `AuthDialog` becomes the `/login?next=` and `/signup` pages (A-5).
+4. Deploy to Vercel. This needs the backend's `PUBLIC_ORIGIN` to include the Vercel domain
+   and `AUTH_COOKIE_SECURE=true`.
+5. Update the assertions in `tests/rendered-html.test.mjs`; they are pinned to the current
+   landing markup.
+
+C-1 (who owns the API types) should be settled before this starts.
+
+### Step 3 — the remaining four screens
+
+Room board, post detail, profile and settings, then the editor. E-2 (the post body format)
+should be settled before the editor is built; it is the most expensive screen and the one
+that gets thrown away if the format flips.
+
+Mock data is fine for layout, but keep G-5's rule: where the backend has no number, show
+"준비 중" or a fixed label rather than a plausible fake. A screen full of invented numbers
+becomes the spec.
 
 ## Working rules
 
@@ -107,8 +153,9 @@ Not in step 1:
 ## Never minify or collapse source
 
 Write one statement per line. Do not collapse a component, a rule set, or a JSX subtree
-onto a single line to save space. (`app/globals.css` still packs ~22 KB onto 55 lines; it is
-dismantled into `styles/tokens.css` + Tailwind classes during the restructure.)
+onto a single line to save space. (The legacy block at the bottom of `app/globals.css` still
+packs ~22 KB onto a handful of lines. It is dead code and gets deleted in step 2, so do not
+spend effort reformatting it.)
 
 ## Contract with the backend
 
@@ -121,9 +168,12 @@ dismantled into `styles/tokens.css` + Tailwind classes during the restructure.)
   fixed label `보유 기간 미확인`; do not build UI that assumes a value.
 - Public post and comment responses do not carry wallet addresses. Do not reintroduce them.
 - `POST /posts` ignores a client-supplied `assetPrice`; the server captures the price itself.
-- Auth: email/password. `refresh` is an httpOnly cookie today; `access` is in sessionStorage
-  and is being moved to an httpOnly cookie (backend task). Until then, server components
-  cannot render logged-in state.
+- Auth uses `loginId`, not email: `{ loginId, password }` to log in, plus `nickname` to sign
+  up. `refresh` is an httpOnly cookie today; `access` is in sessionStorage and is being moved
+  to an httpOnly cookie (backend task). Until then, server components cannot render
+  logged-in state.
+- `lib/api.ts` is the only accurate list of endpoints. Do not copy that list into a document;
+  the copy goes stale and someone writes against it.
 - Open backend requests are listed in the Notion page "구조 고민하기" → "백엔드와 논의할 항목".
 
 ## Fonts
@@ -138,11 +188,11 @@ Run from `frontend/`, in order:
 
 1. `pnpm exec tsc --noEmit`
 2. `pnpm run lint`
-3. `pnpm test`
+3. `pnpm test` — Vitest unit suite, no build needed
 4. `pnpm run build`
+5. `pnpm run test:html` — rendered-HTML check; it builds again, so run it after step 4 only
+   when the change can affect the rendered page
 
-`pnpm test` currently runs `next build` itself before a rendered-HTML check. When Vitest
-lands in step 1, split it: `test` runs the Vitest unit suite alone and is what CI runs,
-`test:html` keeps the build-dependent check. CI must not build twice.
+CI runs steps 1-3. Do not put `test:html` in CI as well; it would make the build run twice.
 
 Playwright e2e tests need the backend running; they are run locally, not in CI, for now.

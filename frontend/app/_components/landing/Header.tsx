@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Member } from "../../../lib/api";
 import Logo from "./Logo";
 
@@ -12,10 +13,10 @@ type Props = {
 export default function Header({ member, onLogin, onSignup, onLogout, onWrite }: Props) {
   return (
     <header className="hd-header">
-      <a href="/" className="hd-brand" aria-label="Hodlit 홈">
+      <Link href="/" className="hd-brand" aria-label="Hodlit 홈">
         <Logo size={32} background="#6E56F0" foreground="#FFFFFF" />
         <span className="hd-brand-name">Hodlit</span>
-      </a>
+      </Link>
 
       {/* 통합 검색은 백엔드에 /search가 없어 아직 비활성입니다. */}
       <button type="button" className="hd-search" disabled title="검색은 준비 중입니다">
