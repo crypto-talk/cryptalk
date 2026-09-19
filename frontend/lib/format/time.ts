@@ -13,6 +13,18 @@ const OTHER_YEAR = new Intl.DateTimeFormat("ko-KR", {
   day: "numeric",
 });
 
+const DATE = new Intl.DateTimeFormat("ko-KR");
+
+/** 날짜. `2026. 9. 19.` 상대 시각이 어색한 기록성 표기에 쓴다. */
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return "";
+
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return "";
+
+  return DATE.format(at);
+}
+
 /**
  * 상대 시각. 일주일이 넘으면 날짜로 떨어진다.
  *
