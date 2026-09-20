@@ -90,6 +90,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // shadcn/ui 에서 복사해 온 프리미티브. 원본과의 diff 를 유지하려고 검사에서 뺀다.
     "components/ui/**",
+    // openapi-typescript 생성물. `pnpm gen:api` 로 다시 만들어지므로 손대지 않는다.
+    "lib/api-schema.ts",
   ]),
 ]);
 

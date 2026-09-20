@@ -1,10 +1,11 @@
-import type { Room } from "../../../lib/mock/landing";
+import type { ConnectedWallet } from "@/features/wallet/api";
+import type { Room } from "@/lib/mock/landing";
 import Logo from "./Logo";
 
 type Props = {
   rooms: Room[];
-  /** 지갑 연결 여부. member.walletAddress로 판단합니다. */
-  walletLinked: boolean;
+  /** 연결된 지갑 목록. 로그인 전이거나 연결 전이면 빈 배열입니다. */
+  wallets: ConnectedWallet[];
   onConnectWallet: () => void;
 };
 
@@ -14,12 +15,14 @@ const changeColor = (change: string) => {
   return "var(--hd-sub)";
 };
 
-export default function Sidebar({ rooms, walletLinked, onConnectWallet }: Props) {
+export default function Sidebar({ rooms, wallets, onConnectWallet }: Props) {
+  const connected = wallets.length > 0;
+
   return (
     <div className="hd-sidebar">
       <div className="hd-label">내 코인</div>
       <div className="hd-card hd-t-sm hd-muted" style={{ marginTop: 8 }}>
-        {walletLinked
+        {connected
           ? "보유 중인 코인의 방이 여기 고정됩니다"
           : "지갑을 연결하면 보유 중인 코인의 방이 여기 고정됩니다"}
       </div>
@@ -59,31 +62,54 @@ export default function Sidebar({ rooms, walletLinked, onConnectWallet }: Props)
           <Logo size={56} background="#CCCCFF" foreground="#1A1A1F" />
         </div>
         <div className="hd-t-h2" style={{ marginTop: 16 }}>
-          지갑을 연결하면
+          {connected ? "연결된 지갑" : "지갑을 연결하면"}
         </div>
-        <div className="hd-cta-list">
-          {[
-            "글에 보유 배지가 붙습니다",
-            "보유 기간이 기록으로 쌓입니다",
-            "내 코인 방이 고정됩니다",
-          ].map((line) => (
-            <div key={line} className="hd-cta-item">
-              <span className="hd-dot" />
-              <span className="hd-t-sm hd-muted">{line}</span>
-            </div>
-          ))}
-        </div>
+
+        {connected ? (
+          <div className="hd-cta-list">
+            {wallets.map((wallet) => (
+              <div key={wallet.id} className="hd-cta-item" style={{ alignItems: "baseline" }}>
+                {/* 주소는 앞뒤만 나옵니다. 축약은 features/wallet 에서 합니다. */}
+                <span
+                  className="hd-t-sm hd-num hd-ellipsis"
+                  style={{ flex: 1, minWidth: 0 }}
+                  title="연결된 지갑 주소"
+                >
+                  {wallet.shortAddress}
+                </span>
+                <span className="hd-t-xs hd-muted" style={{ flex: "0 0 auto" }}>
+                  {wallet.connectedOn}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="hd-cta-list">
+            {[
+              "글에 보유 배지가 붙습니다",
+              "보유 기간이 기록으로 쌓입니다",
+              "내 코인 방이 고정됩니다",
+            ].map((line) => (
+              <div key={line} className="hd-cta-item">
+                <span className="hd-dot" />
+                <span className="hd-t-sm hd-muted">{line}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
-          className="hd-btn hd-btn-primary hd-btn-block"
+          className={`hd-btn hd-btn-block${connected ? "" : " hd-btn-primary"}`}
           style={{ marginTop: 16 }}
           onClick={onConnectWallet}
-          disabled={walletLinked}
         >
-          {walletLinked ? "연결됨" : "지갑 연결"}
+          {connected ? "지갑 추가" : "지갑 연결"}
         </button>
         <div className="hd-t-xs hd-muted" style={{ marginTop: 8 }}>
-          연결 안 해도 읽고 쓸 수 있습니다
+          {connected
+            ? "지갑에서 다른 계정을 고르면 추가됩니다"
+            : "연결 안 해도 읽고 쓸 수 있습니다"}
         </div>
       </div>
 

@@ -20,3 +20,4 @@ gradlew text eol=lf
 
 # 자동 생성 파일은 GitHub PR에서 접어 둔다. 로컬 diff는 그대로 볼 수 있다.
 pnpm-lock.yaml linguist-generated
+frontend/lib/api-schema.ts linguist-generated

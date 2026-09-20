@@ -8,8 +8,11 @@ type Props = {
   posts: FeedPost[];
 };
 
+// 조회수 API가 없습니다. 값이 없으면 숫자를 지어내지 않고 자리를 뺍니다(G-5).
 const stats = (post: FeedPost) =>
-  `댓글 ${post.comments} · 조회 ${post.views.toLocaleString("en-US")}`;
+  post.views === null
+    ? `댓글 ${post.comments}`
+    : `댓글 ${post.comments} · 조회 ${post.views.toLocaleString("en-US")}`;
 
 export default function PostFeed({ posts }: Props) {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -19,7 +22,7 @@ export default function PostFeed({ posts }: Props) {
     <section className="hd-feed">
       <div className="hd-section-head">
         <h2 className="hd-t-h2">전체 글</h2>
-        <span className="hd-info" title="최신순으로 정렬합니다">
+        <span className="hd-info" title="활동 피드를 최신순으로 보여줍니다">
           i
         </span>
       </div>
@@ -67,7 +70,7 @@ export default function PostFeed({ posts }: Props) {
               <a href="#" className="hd-t-sm hd-strong">
                 {post.nick}
               </a>
-              {/* holdingMonths가 아직 null이라 이 줄은 전부 목값입니다. */}
+              {/* 인덱서가 붙기 전까지 서버 holdingMonths가 null이라 항상 '보유 기간 미확인'입니다. */}
               <span
                 className="hd-t-sm"
                 style={{ color: post.tier === "wallet" ? "var(--hd-ink)" : "var(--hd-sub)" }}

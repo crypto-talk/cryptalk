@@ -57,8 +57,12 @@ features/               one folder per domain: auth wallet room post comment vot
                         unit tests sit next to the source as `*.test.ts`
 components/ui/          shadcn primitives (+ *.stories.tsx)
 components/layout/      header sidebar bottom-tab footer fab
-lib/http.ts             fetch wrapper: baseURL, credentials, cookie forwarding on the server,
-                        {code,message} normalisation, 401 refresh
+lib/http.ts             fetch wrapper: baseURL, credentials, bearer token, single-flight 401
+                        refresh, {code,message} normalisation. Every backend request goes
+                        through it
+lib/auth-token.ts       the only place the access token is read or written; deleted at B-3
+lib/api-schema.ts       generated from the backend OpenAPI spec by `pnpm gen:api`. Never
+                        hand-edited, excluded from ESLint and Prettier
 lib/query.ts  lib/format/  lib/utils.ts (cn)  lib/config.ts (env, single read point)
 styles/tokens.css       semantic CSS variables; [data-theme="dark"] block left empty
 styles/fonts/           Pretendard subset woff2, 400/600/700/800/900
@@ -68,13 +72,21 @@ tests/e2e/              Playwright: login.spec.ts, publish-post.spec.ts (run loc
 .storybook/             Storybook config; stories only for components/ui and features/badge
 ```
 
-Existing `app/_components/*`, `lib/api.ts`, `lib/AuthApi.ts`, `lib/mock/landing.ts` are the
-pre-restructure layout. Move them into the tree above; do not add new files to the old locations.
+Existing `app/_components/*`, `lib/api.ts`, `lib/mock/landing.ts` are the pre-restructure
+layout. Move them into the tree above; do not add new files to the old locations. `lib/api.ts`
+now calls `lib/http.ts` instead of holding its own token and retry logic, but it is still
+scheduled to disappear. (`lib/AuthApi.ts` was a second, unused copy of the same auth calls and
+a second token store; it was deleted when `lib/auth-token.ts` landed.)
 
 ## Structure rules
 
 1. Imports flow one way: `app/ -> features/ -> components/ | lib/`. `features/*` never import
    each other. Shared code moves down to `components/` or `lib/`. Enforced by ESLint.
+   ⚠️ One known conflict: rule 3 says badge wording is made only in `features/badge/`, which
+   every other feature needs. `features/landing/api.ts` imports it with an explicit
+   `eslint-disable` and a reason, because duplicating the wording is the more dangerous of the
+   two options. This is a signal that `features/badge/` belongs in `lib/` or `components/` —
+   unresolved, ask before adding a second such import.
 2. `features/<domain>/api.ts` is the only data entry point. Mock data lives in `mock.ts` and
    never leaks past `api.ts`. Components receive data through props only.
 3. Badge and holder-snapshot wording exists only in `features/badge/label.ts`. These are the
@@ -106,13 +118,18 @@ import-direction rule.
 
 Deliberately not done yet, do not treat these as oversights:
 
+- `lib/mock/landing.ts` still holds the landing's view-model types plus the three sections the
+  backend has no API for at all: the ticker aggregate, trending rooms (G-3) and the daily vote
+  (G-5). Rooms, the feed and hot posts now come from `features/landing/api.ts`. The file moves
+  into `features/landing/` with the rest of the landing in step 2.
 - `app/globals.css` still carries the pre-restructure landing rules below the `@theme` block.
   Those ~96 classes are dead: nothing under `app/` uses them, because the current landing
   renders with the `hd-*` classes from `app/_components/landing/landing.css`. The block is
   deleted outright in step 2; it needs no untangling.
-- `lib/http.ts` stops at baseURL, `credentials: 'include'` and `{code,message}` normalisation.
-  Token handling and the 401 refresh wait for the backend cookie change (B-3) and the agreed
-  error shape (C-5). Requests that need auth still go through the old `lib/api.ts`.
+- `lib/http.ts` carries the bearer token and refreshes once on 401, but it still does not
+  forward cookies from a server component: that waits for `access` to move to a cookie (B-3).
+  Until then server components fetch public data only. It also does not branch on the error
+  `code`, because the code list is not agreed yet (C-5) — branch on `ApiError.status`.
 - `components/ui/` is exempt from ESLint so the shadcn copies stay diffable against upstream.
 - Storybook. It goes in now that `components/ui/` and `features/badge/` exist.
 - husky, lint-staged and GitHub Actions. They live at the repository root, outside
@@ -134,7 +151,7 @@ go up first.
 5. Update the assertions in `tests/rendered-html.test.mjs`; they are pinned to the current
    landing markup.
 
-C-1 (who owns the API types) should be settled before this starts.
+C-1 (who owns the API types) is settled: the backend's OpenAPI spec generates them.
 
 ### Step 3 — the remaining four screens
 
@@ -175,8 +192,13 @@ spend effort reformatting it.)
   is `WALLET` or `UNVERIFIED` (no exchange tier exists yet), `quantityBand` is a finished
   string or null, `holdingMonths` is an already-floored integer or null.
 - OpenAPI spec: https://cryptalk-api.hojun.xyz/v3/api-docs — the accurate endpoint list.
-  `GET /feed` (cursor + size, returns `{items, nextCursor, hasMore}`) already exists; the
-  older documents claiming there is no global feed are out of date.
+  `pnpm gen:api` writes it to `lib/api-schema.ts`; run it after any backend change and commit
+  the result. `GET /feed` (cursor + size, returns `{items, nextCursor, hasMore}`) already
+  exists; the older documents claiming there is no global feed are out of date.
+- **Every field of every response type is optional in `lib/api-schema.ts`.** The backend does
+  not emit `required` on response schemas, so springdoc marks all of them `?`. Request bodies
+  are correct. Until the backend fixes this, a feature that needs a non-optional field
+  narrows it in its own `types.ts` and says why — do not spread `?` through the components.
 - `holdingMonths` is always `null` until an EVM indexer populates `holdingSince`. Render the
   fixed label `보유 기간 미확인`; do not build UI that assumes a value.
 - Public post and comment responses do not carry wallet addresses. Do not reintroduce them.
@@ -185,8 +207,8 @@ spend effort reformatting it.)
   up. `refresh` is an httpOnly cookie today; `access` is in sessionStorage and is being moved
   to an httpOnly cookie (backend task). Until then, server components cannot render
   logged-in state.
-- `lib/api.ts` is the only accurate list of endpoints. Do not copy that list into a document;
-  the copy goes stale and someone writes against it.
+- `lib/api-schema.ts` is the accurate list of endpoints. Do not copy it into a document; the
+  copy goes stale and someone writes against it.
 - Open backend requests are listed in the Notion page "구조 고민하기" → "백엔드와 논의할 항목".
 
 ## Fonts
