@@ -1,4 +1,4 @@
-import type { MarqueeItem } from "../../../lib/mock/landing";
+import type { MarqueeItem } from "../types";
 
 type Props = {
   items: MarqueeItem[];

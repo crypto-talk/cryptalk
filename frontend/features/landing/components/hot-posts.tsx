@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { HotPost } from "../../../lib/mock/landing";
-import Badge from "./Badge";
+import type { HotPost } from "../types";
+import TierBadge from "./tier-badge";
 
 type Props = {
   posts: HotPost[];
@@ -55,7 +55,7 @@ export default function HotPosts({ posts }: Props) {
               {post.rank}
             </span>
             <span className="hd-chip">{post.symbol}</span>
-            <Badge tier={post.tier} />
+            <TierBadge tier={post.tier} />
             <span className="hd-t-body hd-ellipsis" style={{ flex: "1 1 240px", minWidth: 0 }}>
               {post.title}
             </span>

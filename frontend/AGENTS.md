@@ -56,7 +56,8 @@ features/               one folder per domain: auth wallet room post comment vot
   <domain>/components/  hooks/  api.ts  types.ts  mock.ts  (schema.ts optional)
                         unit tests sit next to the source as `*.test.ts`
 components/ui/          shadcn primitives (+ *.stories.tsx)
-components/layout/      header sidebar bottom-tab footer fab
+components/layout/      header sidebar footer fab (+ types.ts: the shape the shell receives)
+                        bottom-tab is still to come
 lib/http.ts             fetch wrapper: baseURL, credentials, bearer token, single-flight 401
                         refresh, {code,message} normalisation. Every backend request goes
                         through it
@@ -72,11 +73,18 @@ tests/e2e/              Playwright: login.spec.ts, publish-post.spec.ts (run loc
 .storybook/             Storybook config; stories only for components/ui and features/badge
 ```
 
-Existing `app/_components/*`, `lib/api.ts`, `lib/mock/landing.ts` are the pre-restructure
-layout. Move them into the tree above; do not add new files to the old locations. `lib/api.ts`
-now calls `lib/http.ts` instead of holding its own token and retry logic, but it is still
-scheduled to disappear. (`lib/AuthApi.ts` was a second, unused copy of the same auth calls and
-a second token store; it was deleted when `lib/auth-token.ts` landed.)
+`app/_components/*` and `lib/mock/landing.ts` are gone: step 2 moved the shell into
+`components/layout/`, the landing sections into `features/landing/components/`, the room list
+into `features/room/`, the auth form into `features/auth/components/`, and the landing
+stylesheet to `styles/hd.css` (imported once by `app/layout.tsx`). `lib/api.ts` is the last
+pre-restructure file. It now calls `lib/http.ts` instead of holding its own token and retry
+logic, but it is still scheduled to disappear. (`lib/AuthApi.ts` was a second, unused copy of
+the same auth calls and a second token store; it was deleted when `lib/auth-token.ts` landed.)
+
+`lib/session.tsx` holds the logged-in member. It is in `lib/`, not `features/auth/`, because
+`components/layout/header.tsx` needs it and `components/` cannot import `features/`. It also
+exports `useRequireLogin()`, which sends a logged-out visitor to `/login?next=<here>` and
+returns whether it redirected.
 
 ## Structure rules
 
@@ -118,14 +126,15 @@ import-direction rule.
 
 Deliberately not done yet, do not treat these as oversights:
 
-- `lib/mock/landing.ts` still holds the landing's view-model types plus the three sections the
-  backend has no API for at all: the ticker aggregate, trending rooms (G-3) and the daily vote
-  (G-5). Rooms, the feed and hot posts now come from `features/landing/api.ts`. The file moves
-  into `features/landing/` with the rest of the landing in step 2.
+- `features/landing/mock.ts` still holds the three sections the backend has no API for at
+  all: the marquee aggregate, trending rooms (G-3) and the daily vote (G-5). They reach the
+  screen through `features/landing/api.ts` (`marqueeItems()`, `trendingRooms()`,
+  `dailyVotes()`) so that structure rule 2 holds and only those functions change when the
+  APIs land. Rooms come from `features/room/api.ts`; the feed and hot posts from
+  `features/landing/api.ts`.
 - `app/globals.css` still carries the pre-restructure landing rules below the `@theme` block.
-  Those ~96 classes are dead: nothing under `app/` uses them, because the current landing
-  renders with the `hd-*` classes from `app/_components/landing/landing.css`. The block is
-  deleted outright in step 2; it needs no untangling.
+  Those ~96 classes are dead: nothing uses them, because every screen renders with the `hd-*`
+  classes from `styles/hd.css`. The block is deleted in step 2 ②; it needs no untangling.
 - `lib/http.ts` carries the bearer token and refreshes once on 401, but it still does not
   forward cookies from a server component: that waits for `access` to move to a cookie (B-3).
   Until then server components fetch public data only. It also does not branch on the error
@@ -140,18 +149,33 @@ Deliberately not done yet, do not treat these as oversights:
 The boundary of step 2 is **a deployed site**, not a finished UI. One screen and a real login
 go up first.
 
-1. Move the landing to `app/(shell)/page.tsx`. Split `app/_components/landing/*` into
-   `features/landing/components/` and `components/layout/` (header, sidebar, bottom tab,
-   footer, fab). Pull the shell out properly — every screen in step 3 reuses it.
-2. Convert `landing.css` to tokens and Tailwind classes, and delete the dead block in
-   `app/globals.css`.
-3. `AuthDialog` becomes the `/login?next=` and `/signup` pages (A-5).
-4. Deploy to Vercel. This needs the backend's `PUBLIC_ORIGIN` to include the Vercel domain
-   and `AUTH_COOKIE_SECURE=true`.
-5. Update the assertions in `tests/rendered-html.test.mjs`; they are pinned to the current
-   landing markup.
+1. ✅ The landing is `app/(shell)/page.tsx`. `app/_components/landing/*` split into
+   `features/landing/components/` and `components/layout/` (header, sidebar, footer, fab).
+   The shell is rendered by `app/(shell)/layout.tsx`, which also owns the room list and the
+   connected wallets — every screen in step 3 gets them for free. The bottom tab (<900px)
+   is not built yet; the fab covers that width for now.
+2. ⬜ Convert `styles/hd.css` to tokens and Tailwind classes, and delete the dead block in
+   `app/globals.css`. Everything still renders with the `hd-*` classes.
+3. ✅ `AuthDialog` is now `/login?next=` and `/signup` (A-5). `?next=` is read on the server
+   and passed down, so no `<Suspense>` boundary is needed, and `features/auth/safe-next.ts`
+   rejects anything that is not a same-site path — an unchecked `next` is an open redirect.
+4. ✅ Deployed to Vercel. `CORS_ALLOWED_ORIGINS` (not `PUBLIC_ORIGIN` — the old name in these
+   documents was wrong) includes the domain, and `AUTH_COOKIE_SECURE=true`.
+5. ✅ `tests/rendered-html.test.mjs` now checks the landing, both auth pages, and that a
+   hostile `?next=` never becomes an href.
 
 C-1 (who owns the API types) is settled: the backend's OpenAPI spec generates them.
+
+Known rough edges left by step 2, deliberately:
+
+- `app/(shell)/layout.tsx` is a client component. `access` is still in sessionStorage, so the
+  server cannot know who is logged in (B-3), and connecting a wallet calls a browser
+  extension. When `access` moves to a cookie, the room list can be fetched on the server and
+  only the interactive part stays a client component.
+- The 글쓰기 buttons in the header and the fab are disabled with a title, like the search box.
+  The write screen is step 3; a button that goes nowhere is worse than one that says so.
+- The marquee is rendered by the shell layout, not the landing, because it is a strip across
+  the whole screen group. Its three numbers are still mock (no aggregate API).
 
 ### Step 3 — the remaining four screens
 
@@ -178,7 +202,7 @@ becomes the spec.
 
 Write one statement per line. Do not collapse a component, a rule set, or a JSX subtree
 onto a single line to save space. (The legacy block at the bottom of `app/globals.css` still
-packs ~22 KB onto a handful of lines. It is dead code and gets deleted in step 2, so do not
+packs ~22 KB onto a handful of lines. It is dead code and gets deleted in step 2 ②, so do not
 spend effort reformatting it.)
 
 ## Contract with the backend

@@ -1,8 +1,15 @@
 /*
- * 호들잇 랜딩 — 디자인 아트보드에서 옮긴 스타일.
+ * 호들잇 화면 스타일 — 디자인 아트보드에서 옮긴 것.
  *
- * globals.css는 건드리지 않습니다. 기존 데모 화면(/demo)의 클래스와 겹치지 않도록
- * 모든 클래스에 hd- 접두사를 붙였습니다.
+ * 원래 랜딩 전용이었는데 셸(헤더·사이드바·푸터·FAB)과 로그인·회원가입 화면이
+ * 같은 클래스를 쓰게 되면서 `app/_components/landing/landing.css` 에서
+ * 여기로 올라왔다. `app/layout.tsx` 가 한 번만 읽는다.
+ *
+ * 전부 `.hd` 아래로 좁혀져 있다. 화면군 레이아웃이 `<div className="hd">` 로
+ * 감싼다.
+ *
+ * ⚠️ 2단계 ④에서 styles/tokens.css 의 토큰과 Tailwind 클래스로 바꾼다.
+ * 그때까지는 값을 여기서 직접 들고 있다. 새 화면은 되도록 토큰을 쓴다.
  *
  * 값의 출처: Claude Design 캔버스 아트보드 (Hodlit 랜딩).
  */
@@ -190,6 +197,27 @@
 .hd-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/*
+ * <a> 로 만든 버튼(로그인 · 시작하기).
+ *
+ * `.hd a` 가 클래스1+타입1 이라 `.hd-btn` 하나로는 보라색을 못 이긴다.
+ * `.hd` 를 한 번 더 붙여 클래스 둘로 만들어 덮는다.
+ * `-primary` 가 뒤에 있으므로 같은 특정도에서 나중 규칙이 이긴다.
+ */
+.hd a.hd-btn {
+  display: inline-block;
+  color: var(--hd-ink);
+}
+
+.hd a.hd-btn:hover {
+  color: var(--hd-ink);
+}
+
+.hd a.hd-btn-primary,
+.hd a.hd-btn-primary:hover {
+  color: #fff;
 }
 
 /* ── 헤더 ───────────────────────────────────────────────────────────── */
@@ -708,25 +736,34 @@
   }
 }
 
-/* ── 모달 ───────────────────────────────────────────────────────────── */
+/* ── 로그인 · 회원가입 ──────────────────────────────────────────────── */
 
-.hd-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgb(26 26 31 / 0.4);
+/*
+ * 모달(.hd-backdrop / .hd-modal)이었던 것을 페이지로 바꿨다(A-5).
+ * 헤더만 있는 (focus) 화면군 안에서 세로 가운데에 카드 하나를 놓는다.
+ */
+
+.hd-auth {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  z-index: 100;
+  padding: 48px 24px;
+  min-height: 70vh;
 }
 
-.hd-modal {
+.hd-auth-card {
   width: 100%;
   max-width: 360px;
   background: var(--hd-card);
   border-radius: var(--hd-r-lg);
   padding: 24px;
+}
+
+.hd-auth-foot {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .hd-field {

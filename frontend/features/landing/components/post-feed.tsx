@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { FeedPost } from "../../../lib/mock/landing";
-import Badge from "./Badge";
+import type { FeedPost } from "../types";
+import TierBadge from "./tier-badge";
 
 type Props = {
   posts: FeedPost[];
@@ -53,7 +53,7 @@ export default function PostFeed({ posts }: Props) {
           <article key={post.id} className="hd-post">
             <div className="hd-post-head">
               <span className="hd-chip">{post.symbol}</span>
-              <Badge tier={post.tier} />
+              <TierBadge tier={post.tier} />
               {post.range ? <span className="hd-range">{post.range}</span> : null}
               <span style={{ flex: 1 }} />
               <span className="hd-t-xs hd-muted">{post.time}</span>

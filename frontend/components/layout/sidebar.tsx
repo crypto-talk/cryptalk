@@ -1,11 +1,10 @@
-import type { ConnectedWallet } from "@/features/wallet/api";
-import type { Room } from "@/lib/mock/landing";
-import Logo from "./Logo";
+import Logo from "./logo";
+import type { SidebarRoom, SidebarWallet } from "./types";
 
 type Props = {
-  rooms: Room[];
-  /** 연결된 지갑 목록. 로그인 전이거나 연결 전이면 빈 배열입니다. */
-  wallets: ConnectedWallet[];
+  rooms: SidebarRoom[];
+  /** 연결된 지갑 목록. 로그인 전이거나 연결 전이면 빈 배열이다. */
+  wallets: SidebarWallet[];
   onConnectWallet: () => void;
 };
 
@@ -69,7 +68,7 @@ export default function Sidebar({ rooms, wallets, onConnectWallet }: Props) {
           <div className="hd-cta-list">
             {wallets.map((wallet) => (
               <div key={wallet.id} className="hd-cta-item" style={{ alignItems: "baseline" }}>
-                {/* 주소는 앞뒤만 나옵니다. 축약은 features/wallet 에서 합니다. */}
+                {/* 주소는 앞뒤만 나온다. 축약은 features/wallet 에서 한다. */}
                 <span
                   className="hd-t-sm hd-num hd-ellipsis"
                   style={{ flex: 1, minWidth: 0 }}
