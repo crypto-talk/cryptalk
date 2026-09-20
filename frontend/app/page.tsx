@@ -141,9 +141,10 @@ export default function Landing() {
             </p>
           ) : null}
 
+          {/* 인기글 → 인기 게시판 → 투표 → 전체 글. 읽을거리를 먼저 보여줍니다. */}
+          <HotPosts posts={hot} />
           <TrendingRooms rooms={TRENDING} />
           <VotePanel votes={VOTES} onVote={() => requireLogin("투표는 아직 준비 중입니다.")} />
-          <HotPosts posts={hot} />
           <PostFeed posts={posts} />
         </div>
       </div>
