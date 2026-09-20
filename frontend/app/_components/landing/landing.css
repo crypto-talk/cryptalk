@@ -258,9 +258,9 @@
   max-width: 140px;
 }
 
-/* ── 티커 ───────────────────────────────────────────────────────────── */
+/* ── 전광판 ───────────────────────────────────────────────────────────── */
 
-.hd-ticker {
+.hd-marquee {
   background: var(--hd-lilac);
   padding: 16px 24px;
   display: flex;
@@ -269,7 +269,7 @@
   overflow: hidden;
 }
 
-.hd-ticker-chip {
+.hd-marquee-chip {
   flex: 0 0 auto;
   padding: 2px 8px;
   border-radius: var(--hd-r-sm);
@@ -278,19 +278,19 @@
   font: 600 12px/1.4 inherit;
 }
 
-.hd-ticker-viewport {
+.hd-marquee-viewport {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
-.hd-ticker-track {
+.hd-marquee-track {
   display: flex;
   width: max-content;
   animation: hd-marquee 32s linear infinite;
 }
 
-.hd-ticker-group {
+.hd-marquee-group {
   display: flex;
   align-items: center;
   gap: 32px;

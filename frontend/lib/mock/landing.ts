@@ -5,7 +5,7 @@
  *
  * 방 목록·전체 글·핫글은 실제 API로 옮겼습니다(`features/landing/api.ts`).
  * 남은 것은 백엔드에 API 자체가 없는 세 가지뿐입니다.
- *   - TICKER    랜딩 집계 API 없음
+ *   - MARQUEE   상단 전광판. 랜딩 집계 API 없음
  *   - TRENDING  방별 24h 집계 없음 (G-3 미합의)
  *   - VOTES     일일 투표 기능 자체가 없음 (G-5)
  *
@@ -75,7 +75,7 @@ export type FeedPost = {
   views: number | null;
 };
 
-export type TickerItem = {
+export type MarqueeItem = {
   lead?: string;
   text: string;
   value?: string;
@@ -123,10 +123,15 @@ export const COIN_NAME_KO: Record<string, string> = {
 
 export const coinNameKo = (symbol: string, fallback: string) => COIN_NAME_KO[symbol] ?? fallback;
 
-// ── 티커 ────────────────────────────────────────────────────────────────
+// ── 상단 전광판 ─────────────────────────────────────────────────────────
 
-/** 대기 중인 API: 랜딩 집계 (`GET /landing`) */
-export const TICKER: TickerItem[] = [
+/**
+ * ⚠️ 숫자 세 개는 전부 목값입니다. 오늘 올라온 글 수와 지갑 연결 사용자 수는
+ * 집계 API가 없고, 평균 보유 기간은 holdingMonths가 아직 전부 null이라 계산 자체가
+ * 불가능합니다. **오픈 전에 진짜 값으로 바꾸거나 빼야 합니다.**
+ * 대기 중인 API: 랜딩 집계
+ */
+export const MARQUEE: MarqueeItem[] = [
   {
     lead: "지갑에 이름표를 붙인 커뮤니티",
     text: " — 글쓴이가 그 코인을 실제로 들고 있는지 보입니다",

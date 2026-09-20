@@ -5,7 +5,7 @@ import { loadFeed, loadRooms } from "@/features/landing/api";
 import { loadWallets, type ConnectedWallet } from "@/features/wallet/api";
 import { api, linkInjectedWallet, refreshSession, type Member } from "@/lib/api";
 import {
-  TICKER,
+  MARQUEE,
   TRENDING,
   VOTES,
   type FeedPost,
@@ -16,9 +16,9 @@ import AuthDialog, { type AuthMode } from "./_components/auth/AuthDialog";
 import Footer from "./_components/landing/Footer";
 import Header from "./_components/landing/Header";
 import HotPosts from "./_components/landing/HotPosts";
+import Marquee from "./_components/landing/Marquee";
 import PostFeed from "./_components/landing/PostFeed";
 import Sidebar from "./_components/landing/Sidebar";
-import Ticker from "./_components/landing/Ticker";
 import TrendingRooms from "./_components/landing/TrendingRooms";
 import VotePanel from "./_components/landing/VotePanel";
 import "./_components/landing/landing.css";
@@ -33,7 +33,7 @@ import "./_components/landing/landing.css";
  *   - 전체 글과 핫글                 (GET /feed)
  *
  * 아직 목데이터인 것 — 백엔드에 API 자체가 없습니다
- *   - 티커 숫자, 지금 뜨는 방(G-3 미합의), 오늘의 투표(G-5)
+ *   - 상단 전광판 숫자, 지금 뜨는 방(G-3 미합의), 오늘의 투표(G-5)
  *
  * 불러오기에 실패하면 목데이터로 가리지 않고 화면에 알립니다. 배포본에서
  * 백엔드가 안 붙은 것을 바로 알아야 하기 때문입니다.
@@ -123,7 +123,7 @@ export default function Landing() {
         onWrite={() => requireLogin("글쓰기 화면은 아직 준비 중입니다.")}
       />
 
-      <Ticker items={TICKER} />
+      <Marquee items={MARQUEE} />
 
       <div className="hd-body">
         <Sidebar rooms={rooms} wallets={wallets} onConnectWallet={connectWallet} />
