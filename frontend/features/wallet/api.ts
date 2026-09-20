@@ -1,3 +1,4 @@
+import type { SidebarWallet } from "@/components/layout/types";
 import type { components } from "@/lib/api-schema";
 import { formatDate } from "@/lib/format/time";
 import { http } from "@/lib/http";
@@ -11,12 +12,13 @@ import { http } from "@/lib/http";
 
 type WalletResponse = components["schemas"]["WalletResponse"];
 
-export type ConnectedWallet = {
-  id: number;
-  /** 축약 주소. 전체 주소는 뷰 모델에 담지 않는다 — 아래 주의 참고. */
-  shortAddress: string;
-  connectedOn: string;
-};
+/**
+ * 축약 주소만 담는다. 전체 주소는 뷰 모델에 넣지 않는다 — 아래 주의 참고.
+ *
+ * 모양은 사이드바가 정한다. 셸은 `components/` 에 있어서 `features/` 를 볼 수
+ * 없으므로(구조 규칙 1) 타입이 거기 있고 여기가 가져다 쓴다.
+ */
+export type ConnectedWallet = SidebarWallet;
 
 export async function loadWallets(): Promise<ConnectedWallet[]> {
   const wallets = await http<WalletResponse[]>("/api/v1/me/wallets");

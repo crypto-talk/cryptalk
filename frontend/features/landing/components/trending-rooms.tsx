@@ -1,4 +1,16 @@
-import { PODIUM_STYLE, type TrendingRoom } from "../../../lib/mock/landing";
+import type { TrendingRoom } from "../types";
+
+/**
+ * 1·2·3위 카드 배색. 디자인 아트보드의 PODIUM_STYLE 그대로다.
+ * 여기서만 쓰므로 목데이터가 아니라 이 컴포넌트가 들고 있는다.
+ *
+ * ⚠️ 2단계 ④에서 styles/tokens.css 의 토큰으로 바꾼다.
+ */
+const PODIUM_STYLE = [
+  { bg: "#6E56F0", ink: "#FFFFFF", subInk: "#FFFFFF", rankColor: "#FFFFFF", arrowColor: "#FFFFFF" },
+  { bg: "#CCCCFF", ink: "#1A1A1F", subInk: "#1A1A1F", rankColor: "#6E56F0", arrowColor: "#6E56F0" },
+  { bg: "#F6F6F8", ink: "#1A1A1F", subInk: "#6B6B75", rankColor: "#6E56F0", arrowColor: "#6E56F0" },
+];
 
 type Props = {
   rooms: TrendingRoom[];

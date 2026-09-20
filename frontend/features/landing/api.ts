@@ -1,8 +1,8 @@
 import type { components } from "@/lib/api-schema";
-import { formatChangeRate } from "@/lib/format/number";
 import { formatRelativeTime } from "@/lib/format/time";
 import { http } from "@/lib/http";
-import { coinNameKo, type FeedPost, type HotPost, type Room, type Tier } from "@/lib/mock/landing";
+import { MARQUEE, TRENDING, VOTES } from "./mock";
+import type { FeedPost, HotPost, MarqueeItem, Tier, TrendingRoom, VoteRow } from "./types";
 
 /* eslint-disable no-restricted-imports --
  * 구조 규칙 3은 보유 문구를 features/badge 밖에서 만들지 말라고 하고,
@@ -18,20 +18,17 @@ import { holdingPeriodLabel } from "@/features/badge/label";
 /* eslint-enable no-restricted-imports */
 
 /**
- * 랜딩이 백엔드에서 가져오는 데이터 (구조 규칙 2: 데이터 진입점은 여기 하나).
+ * 랜딩이 가져오는 데이터 (구조 규칙 2: 데이터 진입점은 여기 하나).
+ *
+ * 방 목록은 셸의 것이라 여기 없다. `features/room/api.ts` 를 본다.
  *
  * ⚠️ `lib/api-schema.ts` 의 응답 타입은 모든 필드가 선택(`?`)이다. 백엔드가
  * 응답 스키마에 required 를 안 내보내서다. 게다가 Jackson 설정이
  * `default-property-inclusion: non_null` 이라 null 필드는 아예 빠져서 온다.
  * 그래서 여기서 한 번 좁히고, 화면은 좁혀진 뷰 모델만 받는다.
- *
- * 아직 API 가 없어서 목데이터로 남은 것: 티커 집계, 뜨는 방 24h 집계(G-3),
- * 일일 투표(G-5), 조회수.
  */
 
 type Schemas = components["schemas"];
-type CoinResponse = Schemas["CoinResponse"];
-type PriceQuote = Schemas["PriceQuote"];
 type PostResponse = Schemas["PostResponse"];
 type FeedItemResponse = Schemas["FeedItemResponse"];
 type FeedPageResponse = Schemas["FeedPageResponse"];
@@ -39,43 +36,36 @@ type FeedPageResponse = Schemas["FeedPageResponse"];
 /** id 가 확인된 글. 목록 key 로 쓰므로 여기서 보장한다. */
 type IdentifiedPost = PostResponse & { id: number };
 
-const ROOM_LIMIT = 10;
 const FEED_SIZE = 20;
 const HOT_LIMIT = 5;
 const PREVIEW_LENGTH = 120;
-
-/**
- * 사이드바 '전체 방'.
- *
- * 등락률은 `GET /market/prices` 에서 온다. 시세 조회가 실패해도 방 목록은
- * 보여야 하므로 등락률만 대시로 떨어뜨린다.
- */
-export async function loadRooms(): Promise<Room[]> {
-  const [coins, prices] = await Promise.all([
-    http<CoinResponse[]>("/api/v1/coins"),
-    http<PriceQuote[]>("/api/v1/market/prices?currency=KRW").catch(() => [] as PriceQuote[]),
-  ]);
-
-  const changeBySymbol = new Map(
-    prices.filter(hasSymbol).map((quote) => [quote.symbol, quote.change24h ?? null]),
-  );
-
-  return coins
-    .filter(hasSymbol)
-    .slice(0, ROOM_LIMIT)
-    .map((coin) => ({
-      symbol: coin.symbol,
-      // 백엔드는 영문명만 준다. 한글명 필드가 생기면 coinNameKo 를 지운다(D-4).
-      name: coinNameKo(coin.symbol, coin.name ?? coin.symbol),
-      change: formatChangeRate(changeBySymbol.get(coin.symbol)),
-    }));
-}
 
 /** 전체 글과 핫글. 둘 다 같은 피드 한 번으로 만든다. */
 export async function loadFeed(): Promise<{ posts: FeedPost[]; hot: HotPost[] }> {
   const page = await http<FeedPageResponse>(`/api/v1/feed?size=${FEED_SIZE}`);
   const posts = uniquePosts(page.items ?? []).map(toFeedPost);
   return { posts, hot: toHotPosts(posts) };
+}
+
+/*
+ * 아래 셋은 백엔드에 API 자체가 없어서 목데이터를 그대로 돌려준다.
+ * 화면이 `./mock` 을 직접 읽지 않게 하려고(구조 규칙 2) 여기를 통과시킨다.
+ * API 가 생기면 이 함수만 async 로 바꾸면 화면은 그대로 둘 수 있다.
+ */
+
+/** ⚠️ 목값. 랜딩 집계 API 없음. 오픈 전에 진짜 값으로 바꾸거나 빼야 한다. */
+export function marqueeItems(): MarqueeItem[] {
+  return MARQUEE;
+}
+
+/** ⚠️ 목값. 방별 24h 글·댓글 집계 API 없음 (G-3 미합의). */
+export function trendingRooms(): TrendingRoom[] {
+  return TRENDING;
+}
+
+/** ⚠️ 목값. 일일 투표 기능 자체가 백엔드에 없음 (G-5). */
+export function dailyVotes(): VoteRow[] {
+  return VOTES;
 }
 
 /**
@@ -149,8 +139,4 @@ function toTier(verificationLevel: string | undefined, verifiedHolder: boolean |
 function toPreview(content: string | undefined): string {
   const text = (content ?? "").replace(/\s+/g, " ").trim();
   return text.length > PREVIEW_LENGTH ? `${text.slice(0, PREVIEW_LENGTH)}…` : text;
-}
-
-function hasSymbol<T extends { symbol?: string }>(value: T): value is T & { symbol: string } {
-  return typeof value.symbol === "string" && value.symbol.length > 0;
 }

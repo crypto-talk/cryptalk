@@ -1,4 +1,4 @@
-import type { VoteRow } from "../../../lib/mock/landing";
+import type { VoteRow } from "../types";
 
 type Props = {
   votes: VoteRow[];
